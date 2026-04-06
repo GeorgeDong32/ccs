@@ -6,6 +6,7 @@
  */
 
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Clock, Users, Zap, Terminal } from 'lucide-react';
@@ -23,6 +24,7 @@ interface SessionStatsCardProps {
 
 export function SessionStatsCard({ data, isLoading, className }: SessionStatsCardProps) {
   const { privacyMode } = usePrivacy();
+  const { t } = useTranslation();
 
   const stats = useMemo(() => {
     if (!data?.sessions || data.sessions.length === 0) return null;
@@ -72,11 +74,13 @@ export function SessionStatsCard({ data, isLoading, className }: SessionStatsCar
         <CardHeader className="px-3 py-2">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Terminal className="w-4 h-4" />
-            Session Stats
+            {t('analyticsSession.title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="px-3 pb-3 pt-0 flex-1 flex items-center justify-center">
-          <p className="text-sm text-muted-foreground text-center">No session data available</p>
+          <p className="text-sm text-muted-foreground text-center">
+            {t('analyticsSession.emptyState')}
+          </p>
         </CardContent>
       </Card>
     );
@@ -89,7 +93,7 @@ export function SessionStatsCard({ data, isLoading, className }: SessionStatsCar
       <CardHeader className="px-3 py-2">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <Terminal className="w-4 h-4" />
-          Session Stats
+          {t('analyticsSession.title')}
         </CardTitle>
       </CardHeader>
       <CardContent className="px-3 pb-3 pt-0 flex-1 min-h-0 flex flex-col gap-3">
@@ -102,7 +106,7 @@ export function SessionStatsCard({ data, isLoading, className }: SessionStatsCar
               <span className="text-xl font-bold">{stats.totalSessions}</span>
             </div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
-              Total Sessions
+              {t('analyticsSession.totalSessions')}
             </p>
           </div>
 
@@ -115,7 +119,7 @@ export function SessionStatsCard({ data, isLoading, className }: SessionStatsCar
               </span>
             </div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
-              Avg Cost/Session
+              {t('analyticsSession.avgCostPerSession')}
             </p>
           </div>
         </div>
@@ -124,7 +128,7 @@ export function SessionStatsCard({ data, isLoading, className }: SessionStatsCar
         <div className="flex-1 min-h-0 space-y-2">
           <div className="flex items-center gap-1 text-xs text-muted-foreground font-medium mb-1">
             <Clock className="w-3 h-3" />
-            Recent Activity
+            {t('analyticsSession.recentActivity')}
           </div>
           <div className="space-y-1.5 max-h-full overflow-y-auto pr-1">
             {stats.recentSessions.map((session) => (

@@ -7,6 +7,7 @@
 
 import { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { useTranslation } from 'react-i18next';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ModelUsage } from '@/hooks/use-usage';
 import { cn, getModelColor } from '@/lib/utils';
@@ -20,6 +21,7 @@ interface ModelBreakdownChartProps {
 
 export function ModelBreakdownChart({ data, isLoading, className }: ModelBreakdownChartProps) {
   const { privacyMode } = usePrivacy();
+  const { t } = useTranslation();
 
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
@@ -40,7 +42,7 @@ export function ModelBreakdownChart({ data, isLoading, className }: ModelBreakdo
   if (!data || data.length === 0) {
     return (
       <div className={cn('h-full min-h-[100px] flex items-center justify-center', className)}>
-        <p className="text-muted-foreground">No model data available</p>
+        <p className="text-muted-foreground">{t('analyticsModel.emptyState')}</p>
       </div>
     );
   }

@@ -532,6 +532,7 @@ rm -rf ~/.ccs             # Clean environment
 ## Active Technologies
 - TypeScript 5.9 + React 19.2, Vite 7.2, Recharts 2.12, Tailwind CSS 4.1 (001-dashboard-ui-polish)
 - N/A (no data storage changes) (001-dashboard-ui-polish)
+- TypeScript 5.9 + React 19.2, react-i18next, i18nex (002-analytics-i18n-zh)
 
 ## Recent Changes
 - 001-dashboard-ui-polish: Added TypeScript 5.9 + React 19.2, Vite 7.2, Recharts 2.12, Tailwind CSS 4.1

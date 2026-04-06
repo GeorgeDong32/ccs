@@ -5,6 +5,7 @@
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslation } from 'react-i18next';
 import { UsageTrendChart } from '@/components/analytics/usage-trend-chart';
 import { ModelBreakdownChart } from '@/components/analytics/model-breakdown-chart';
 import { SessionStatsCard } from '@/components/analytics/session-stats-card';
@@ -42,6 +43,7 @@ export function ChartsGrid({
   onModelClick,
 }: ChartsGridProps) {
   const { privacyMode } = usePrivacy();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-0 grid gap-4 lg:grid-rows-[minmax(260px,1.2fr)_minmax(220px,0.9fr)]">
@@ -50,7 +52,7 @@ export function ChartsGrid({
         <CardHeader className="px-3 py-2 shrink-0">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
-            {viewMode === 'hourly' ? 'Last 24 Hours' : 'Usage Trends'}
+            {viewMode === 'hourly' ? t('analytics.last24Hours') : t('analytics.usageTrends')}
           </CardTitle>
         </CardHeader>
         <CardContent className="px-3 pb-3 pt-0 flex-1 min-h-0">
@@ -77,7 +79,7 @@ export function ChartsGrid({
           <CardHeader className="px-3 py-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <PieChart className="w-4 h-4" />
-              Model Usage
+              {t('analytics.modelUsage')}
             </CardTitle>
           </CardHeader>
           <CardContent className="px-2 pb-2 pt-0 flex-1 min-h-0 flex items-center justify-center">
