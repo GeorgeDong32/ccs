@@ -42,8 +42,9 @@ export function UsageTrendChart({
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
 
-    // For hourly data, already sorted ascending from API
-    const sortedData = granularity === 'hourly' ? data : [...data].reverse();
+    // Data from API: hourly ascending, daily/monthly descending
+    // Display: all ascending (oldest left, newest right) - use directly
+    const sortedData = data;
 
     return sortedData.map((item) => {
       // Handle hourly vs daily data format

@@ -9,8 +9,6 @@ import { DocsLink } from '@/components/shared/docs-link';
 import { ConnectionIndicator } from '@/components/shared/connection-indicator';
 import { LocalhostDisclaimer } from '@/components/shared/localhost-disclaimer';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ClaudeKitBadge } from '@/components/shared/claudekit-badge';
-import { SponsorButton } from '@/components/shared/sponsor-button';
 import { ProjectSelectionDialog } from '@/components/shared/project-selection-dialog';
 import { DeviceCodeDialog } from '@/components/shared/device-code-dialog';
 import { UserMenu } from '@/components/auth/user-menu';
@@ -42,10 +40,7 @@ export function Layout() {
       <AppSidebar />
       <main className="flex-1 flex flex-col min-h-0 overflow-hidden bg-background">
         <header className="flex h-14 items-center justify-between px-6 border-b shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex items-center gap-3">
-            <ClaudeKitBadge />
-            <SponsorButton />
-          </div>
+          <div />
           <div className="flex items-center gap-2">
             <ConnectionIndicator />
             <LanguageSwitcher />
