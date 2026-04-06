@@ -9,7 +9,7 @@ const os = require('os');
  * CCS Postinstall Script
  * Automatically creates config files in ~/.ccs/ after npm install
  *
- * Runs when: npm install -g @kaitranntt/ccs
+ * Runs when: npm install -g @georgedong32/ccs
  * Idempotent: Safe to run multiple times (won't overwrite existing configs)
  * Cross-platform: Works on Unix, macOS, Windows
  *
@@ -343,7 +343,7 @@ function createConfigFiles() {
     console.error('     echo "{}" > ~/.claude/settings.json');
     console.error('');
     console.error('  3. Retry installation:');
-    console.error('     npm install -g @kaitranntt/ccs --force');
+    console.error('     npm install -g @georgedong32/ccs --force');
     console.error('');
     console.error('  4. If issue persists, report at:');
     console.error('     https://github.com/kaitranntt/ccs/issues');

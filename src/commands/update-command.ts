@@ -110,19 +110,19 @@ function handleCheckFailed(message: string, targetTag: string = 'latest'): void 
 
   switch (packageManager) {
     case 'npm':
-      manualCommand = `npm install -g @kaitranntt/ccs@${targetTag}`;
+      manualCommand = `npm install -g @georgedong32/ccs@${targetTag}`;
       break;
     case 'yarn':
-      manualCommand = `yarn global add @kaitranntt/ccs@${targetTag}`;
+      manualCommand = `yarn global add @georgedong32/ccs@${targetTag}`;
       break;
     case 'pnpm':
-      manualCommand = `pnpm add -g @kaitranntt/ccs@${targetTag}`;
+      manualCommand = `pnpm add -g @georgedong32/ccs@${targetTag}`;
       break;
     case 'bun':
-      manualCommand = `bun add -g @kaitranntt/ccs@${targetTag}`;
+      manualCommand = `bun add -g @georgedong32/ccs@${targetTag}`;
       break;
     default:
-      manualCommand = `npm install -g @kaitranntt/ccs@${targetTag}`;
+      manualCommand = `npm install -g @georgedong32/ccs@${targetTag}`;
   }
 
   console.log(color(`  ${manualCommand}`, 'command'));
@@ -170,33 +170,33 @@ async function performNpmUpdate(
   switch (packageManager) {
     case 'npm':
       updateCommand = 'npm';
-      updateArgs = ['install', '-g', `@kaitranntt/ccs@${targetTag}`];
+      updateArgs = ['install', '-g', `@georgedong32/ccs@${targetTag}`];
       cacheCommand = 'npm';
       cacheArgs = ['cache', 'clean', '--force'];
       break;
     case 'yarn':
       updateCommand = 'yarn';
-      updateArgs = ['global', 'add', `@kaitranntt/ccs@${targetTag}`];
+      updateArgs = ['global', 'add', `@georgedong32/ccs@${targetTag}`];
       cacheCommand = 'yarn';
       cacheArgs = ['cache', 'clean'];
       break;
     case 'pnpm':
       updateCommand = 'pnpm';
-      updateArgs = ['add', '-g', `@kaitranntt/ccs@${targetTag}`];
+      updateArgs = ['add', '-g', `@georgedong32/ccs@${targetTag}`];
       cacheCommand = 'pnpm';
       cacheArgs = ['store', 'prune'];
       break;
     case 'bun':
       updateCommand = 'bun';
-      updateArgs = ['add', '-g', `@kaitranntt/ccs@${targetTag}`];
+      updateArgs = ['add', '-g', `@georgedong32/ccs@${targetTag}`];
       // On Windows, bun's global bin symlink may not update properly without removal first
       // Pre-remove to ensure clean reinstall (mirrors dev-install.sh behavior)
       cacheCommand = process.platform === 'win32' ? 'bun' : null;
-      cacheArgs = process.platform === 'win32' ? ['remove', '-g', '@kaitranntt/ccs'] : null;
+      cacheArgs = process.platform === 'win32' ? ['remove', '-g', '@georgedong32/ccs'] : null;
       break;
     default:
       updateCommand = 'npm';
-      updateArgs = ['install', '-g', `@kaitranntt/ccs@${targetTag}`];
+      updateArgs = ['install', '-g', `@georgedong32/ccs@${targetTag}`];
       cacheCommand = 'npm';
       cacheArgs = ['cache', 'clean', '--force'];
   }

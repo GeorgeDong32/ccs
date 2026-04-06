@@ -33,12 +33,12 @@ export function detectPackageManager(): 'npm' | 'yarn' | 'pnpm' | 'bun' {
 
   // Check if package managers are available on the system
   try {
-    const yarnResult = spawnSync('yarn', ['global', 'list', '--pattern', '@kaitranntt/ccs'], {
+    const yarnResult = spawnSync('yarn', ['global', 'list', '--pattern', '@georgedong32/ccs'], {
       encoding: 'utf8',
       shell: true,
       timeout: 5000,
     });
-    if (yarnResult.status === 0 && yarnResult.stdout.includes('@kaitranntt/ccs')) {
+    if (yarnResult.status === 0 && yarnResult.stdout.includes('@georgedong32/ccs')) {
       return 'yarn';
     }
   } catch (_err) {
@@ -46,12 +46,12 @@ export function detectPackageManager(): 'npm' | 'yarn' | 'pnpm' | 'bun' {
   }
 
   try {
-    const pnpmResult = spawnSync('pnpm', ['list', '-g', '--pattern', '@kaitranntt/ccs'], {
+    const pnpmResult = spawnSync('pnpm', ['list', '-g', '--pattern', '@georgedong32/ccs'], {
       encoding: 'utf8',
       shell: true,
       timeout: 5000,
     });
-    if (pnpmResult.status === 0 && pnpmResult.stdout.includes('@kaitranntt/ccs')) {
+    if (pnpmResult.status === 0 && pnpmResult.stdout.includes('@georgedong32/ccs')) {
       return 'pnpm';
     }
   } catch (_err) {
@@ -59,12 +59,12 @@ export function detectPackageManager(): 'npm' | 'yarn' | 'pnpm' | 'bun' {
   }
 
   try {
-    const bunResult = spawnSync('bun', ['pm', 'ls', '-g', '--pattern', '@kaitranntt/ccs'], {
+    const bunResult = spawnSync('bun', ['pm', 'ls', '-g', '--pattern', '@georgedong32/ccs'], {
       encoding: 'utf8',
       shell: true,
       timeout: 5000,
     });
-    if (bunResult.status === 0 && bunResult.stdout.includes('@kaitranntt/ccs')) {
+    if (bunResult.status === 0 && bunResult.stdout.includes('@georgedong32/ccs')) {
       return 'bun';
     }
   } catch (_err) {

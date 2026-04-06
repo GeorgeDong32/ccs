@@ -50,7 +50,7 @@ GLOBAL_CCS_PATH=$(which ccs 2>/dev/null || true)
 
 if [ -z "$GLOBAL_CCS_PATH" ]; then
     echo "[X] ERROR: No global 'ccs' installation found."
-    echo "Install CCS globally first: npm install -g @kaitranntt/ccs"
+    echo "Install CCS globally first: npm install -g @georgedong32/ccs"
     exit 1
 fi
 

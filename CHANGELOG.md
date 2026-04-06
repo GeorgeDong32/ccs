@@ -2583,7 +2583,7 @@ if no vision model configured for that provider.
 ### ⚠ BREAKING CHANGES
 
 * Native shell installers (curl/irm) no longer work.
-Use `npm install -g @kaitranntt/ccs` instead.
+Use `npm install -g @georgedong32/ccs` instead.
 
 ### Features
 
@@ -2671,7 +2671,7 @@ Use `npm install -g @kaitranntt/ccs` instead.
 ### ⚠ BREAKING CHANGES
 
 * Native shell installers (curl/irm) no longer work.
-Use `npm install -g @kaitranntt/ccs` instead.
+Use `npm install -g @georgedong32/ccs` instead.
 
 ### Features
 

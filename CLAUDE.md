@@ -528,3 +528,10 @@ rm -rf ~/.ccs             # Clean environment
 - Validate early, fail fast with clear messages
 - Show available options on mistakes
 - Never leave broken state
+
+## Active Technologies
+- TypeScript 5.9 + React 19.2, Vite 7.2, Recharts 2.12, Tailwind CSS 4.1 (001-dashboard-ui-polish)
+- N/A (no data storage changes) (001-dashboard-ui-polish)
+
+## Recent Changes
+- 001-dashboard-ui-polish: Added TypeScript 5.9 + React 19.2, Vite 7.2, Recharts 2.12, Tailwind CSS 4.1

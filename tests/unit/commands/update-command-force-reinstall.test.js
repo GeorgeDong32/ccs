@@ -122,7 +122,7 @@ describe.skip('Update Command - Force Reinstall Implementation (Phase 2)', funct
         // Should spawn with latest tag
         assert(spawnCalls.length > 0, 'spawn should be called');
         const latestCall = spawnCalls.find(call =>
-          call.args && call.args.includes('@kaitranntt/ccs@latest')
+          call.args && call.args.includes('@georgedong32/ccs@latest')
         );
         assert(latestCall, 'should install latest tag when beta is false');
       } finally {
@@ -143,7 +143,7 @@ describe.skip('Update Command - Force Reinstall Implementation (Phase 2)', funct
         // Should spawn with dev tag
         assert(spawnCalls.length > 0, 'spawn should be called');
         const devCall = spawnCalls.find(call =>
-          call.args && call.args.includes('@kaitranntt/ccs@dev')
+          call.args && call.args.includes('@georgedong32/ccs@dev')
         );
         assert(devCall, 'should install dev tag when beta is true');
       } finally {
@@ -205,7 +205,7 @@ describe.skip('Update Command - Force Reinstall Implementation (Phase 2)', funct
         // Check npm command uses correct tag syntax
         const npmCall = spawnCalls.find(call => call.command === 'npm');
         assert(npmCall, 'npm should be called');
-        assert(npmCall.args.includes('@kaitranntt/ccs@dev'), 'should use dev tag for npm');
+        assert(npmCall.args.includes('@georgedong32/ccs@dev'), 'should use dev tag for npm');
         assert(npmCall.args.includes('-g'), 'should use global flag for npm');
       } finally {
         // Restore original functions
@@ -225,7 +225,7 @@ describe.skip('Update Command - Force Reinstall Implementation (Phase 2)', funct
         // Check yarn command uses correct tag syntax
         const yarnCall = spawnCalls.find(call => call.command === 'yarn');
         assert(yarnCall, 'yarn should be called');
-        assert(yarnCall.args.includes('@kaitranntt/ccs@latest'), 'should use latest tag for yarn');
+        assert(yarnCall.args.includes('@georgedong32/ccs@latest'), 'should use latest tag for yarn');
         assert(yarnCall.args.includes('global'), 'should use global flag for yarn');
       } finally {
         // Restore original functions
@@ -245,7 +245,7 @@ describe.skip('Update Command - Force Reinstall Implementation (Phase 2)', funct
         // Check pnpm command uses correct tag syntax
         const pnpmCall = spawnCalls.find(call => call.command === 'pnpm');
         assert(pnpmCall, 'pnpm should be called');
-        assert(pnpmCall.args.includes('@kaitranntt/ccs@dev'), 'should use dev tag for pnpm');
+        assert(pnpmCall.args.includes('@georgedong32/ccs@dev'), 'should use dev tag for pnpm');
         assert(pnpmCall.args.includes('-g'), 'should use global flag for pnpm');
       } finally {
         // Restore original functions
@@ -265,7 +265,7 @@ describe.skip('Update Command - Force Reinstall Implementation (Phase 2)', funct
         // Check bun command uses correct tag syntax
         const bunCall = spawnCalls.find(call => call.command === 'bun');
         assert(bunCall, 'bun should be called');
-        assert(bunCall.args.includes('@kaitranntt/ccs@latest'), 'should use latest tag for bun');
+        assert(bunCall.args.includes('@georgedong32/ccs@latest'), 'should use latest tag for bun');
         assert(bunCall.args.includes('-g'), 'should use global flag for bun');
       } finally {
         // Restore original functions
@@ -309,7 +309,7 @@ describe.skip('Update Command - Force Reinstall Implementation (Phase 2)', funct
         // Should use dev tag for beta
         assert(spawnCalls.length > 0, 'spawn should be called');
         const npmCall = spawnCalls.find(call => call.command === 'npm');
-        assert(npmCall.args.includes('@kaitranntt/ccs@dev'), 'should use dev tag');
+        assert(npmCall.args.includes('@georgedong32/ccs@dev'), 'should use dev tag');
 
         // Should show reinstall message
         const forceMessage = consoleOutput.find(output =>
