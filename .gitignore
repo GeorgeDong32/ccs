@@ -32,8 +32,12 @@ yarn.lock
 pnpm-lock.yaml
 package-lock.json
 
-.claude/active-plan
-.claude/agent-memory/
+# Claude Code
+.claude/
+
+# Speckit
+.specify/
+specs/
 
 # Logs directory
 logs/
