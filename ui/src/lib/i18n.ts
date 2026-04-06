@@ -2379,7 +2379,7 @@ const resources = {
         heavyCacheUsage: '重度缓存使用',
       },
       analyticsCostModel: {
-        title: '按模型成本',
+        title: '逐模型成本',
         clickForDetails: '点击查看详情',
       },
       analyticsModel: {
@@ -5231,7 +5231,7 @@ const resources = {
         heavyCacheUsage: '重度缓存使用',
       },
       analyticsCostModel: {
-        title: '按模型成本',
+        title: '逐模型成本',
         clickForDetails: '点击查看详情',
       },
       analyticsModel: {
