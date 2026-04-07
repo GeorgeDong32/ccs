@@ -9,6 +9,7 @@
 
 import { Router } from 'express';
 import multer from 'multer';
+import { requireLocalAccessWhenAuthDisabled } from '../middleware/auth-middleware';
 import {
   handleSummary,
   handleDaily,
@@ -33,6 +34,20 @@ const upload = multer({
 });
 
 export const usageRoutes = Router();
+
+const USAGE_WRITE_ACCESS_ERROR =
+  'Usage refresh requires localhost access when dashboard auth is disabled.';
+
+usageRoutes.use((req, res, next) => {
+  if (req.method.toUpperCase() !== 'POST') {
+    next();
+    return;
+  }
+
+  if (requireLocalAccessWhenAuthDisabled(req, res, USAGE_WRITE_ACCESS_ERROR)) {
+    next();
+  }
+});
 
 // Summary endpoint
 usageRoutes.get('/summary', handleSummary);
