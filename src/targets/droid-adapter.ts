@@ -74,10 +74,17 @@ export class DroidAdapter implements TargetAdapter {
   }
 
   /**
-   * Droid uses config file for credentials — minimal env needed.
+   * Droid uses config file for credentials — pass through env but strip ANTHROPIC_ overrides.
+   * This prevents leaking proxy settings from the host environment.
    */
   buildEnv(_creds: TargetCredentials, _profileType: ProfileType): NodeJS.ProcessEnv {
-    return { ...process.env };
+    const env = { ...process.env };
+    for (const key of Object.keys(env)) {
+      if (key.startsWith('ANTHROPIC_')) {
+        delete env[key];
+      }
+    }
+    return env;
   }
 
   exec(
