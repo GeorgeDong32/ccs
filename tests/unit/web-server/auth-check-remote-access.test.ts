@@ -8,6 +8,7 @@
 
 import { describe, it, expect } from 'bun:test';
 import { isLoopbackRemoteAddress } from '../../../src/web-server/middleware/auth-middleware';
+import { resolveDashboardAccessState } from '../../../src/web-server/routes/auth-routes';
 
 describe('isLoopbackRemoteAddress', () => {
   it('returns true for IPv4 localhost', () => {
@@ -49,8 +50,19 @@ describe('effectiveAuthRequired logic', () => {
     expect(computeEffectiveAuthRequired(false, '127.0.0.1')).toBe(false);
   });
 
-  it('remote + auth disabled -> authRequired=true', () => {
-    expect(computeEffectiveAuthRequired(false, '192.168.2.100')).toBe(true);
+  it('keeps remote access open when auth is disabled', () => {
+    expect(
+      resolveDashboardAccessState(
+        { enabled: false, username: '', password_hash: '', session_timeout_hours: 24 },
+        '192.168.2.100'
+      )
+    ).toEqual({
+      authRequired: false,
+      authEnabled: false,
+      authConfigured: false,
+      isLocalAccess: false,
+      accessMode: 'open',
+    });
   });
 
   it('remote + auth enabled -> authRequired=true', () => {

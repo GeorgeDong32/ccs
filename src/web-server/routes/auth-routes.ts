@@ -24,6 +24,52 @@ function timingSafeEqual(a: string, b: string): boolean {
 
 const router = Router();
 
+export type DashboardAccessMode = 'open' | 'login' | 'setup';
+
+export interface DashboardAccessState {
+  authRequired: boolean;
+  authEnabled: boolean;
+  authConfigured: boolean;
+  isLocalAccess: boolean;
+  accessMode: DashboardAccessMode;
+}
+
+export function resolveDashboardAccessState(
+  authConfig: DashboardAuthConfig,
+  remoteAddress: string | undefined
+): DashboardAccessState {
+  const isLocalAccess = isLoopbackRemoteAddress(remoteAddress);
+  const authConfigured = Boolean(authConfig.username && authConfig.password_hash);
+
+  if (!authConfig.enabled) {
+    return {
+      authRequired: false,
+      authEnabled: false,
+      authConfigured,
+      isLocalAccess,
+      accessMode: 'open',
+    };
+  }
+
+  if (authConfigured) {
+    return {
+      authRequired: true,
+      authEnabled: true,
+      authConfigured: true,
+      isLocalAccess,
+      accessMode: 'login',
+    };
+  }
+
+  return {
+    authRequired: true,
+    authEnabled: true,
+    authConfigured,
+    isLocalAccess,
+    accessMode: 'setup',
+  };
+}
+
 /**
  * POST /api/auth/login
  * Authenticate user with username/password.
