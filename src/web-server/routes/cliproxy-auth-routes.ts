@@ -1,5 +1,3 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { Router, Request, Response } from 'express';
 import {
   getAllAuthStatus,
@@ -37,8 +35,10 @@ import { fetchRemoteAuthStatus } from '../../cliproxy/remote-auth-fetcher';
 import { loadOrCreateUnifiedConfig } from '../../config/unified-config-loader';
 import { tryKiroImport } from '../../cliproxy/auth/kiro-import';
 import {
+  type ProviderTokenSnapshot,
+  findNewTokenSnapshot,
   getProviderTokenDir,
-  isTokenFileForProvider,
+  listProviderTokenSnapshots,
   registerAccountFromToken,
 } from '../../cliproxy/auth/token-manager';
 import {
@@ -63,11 +63,6 @@ import { requireLocalAccessWhenAuthDisabled } from '../middleware/auth-middlewar
 const router = Router();
 const MANUAL_AUTH_STATE_TTL_MS = 10 * 60 * 1000;
 const POLLED_AUTH_LOCAL_TOKEN_GRACE_MS = 15 * 1000;
-type ProviderTokenSnapshot = {
-  file: string;
-  mtimeMs: number;
-  email?: string;
-};
 
 const pendingManualAuthState = new Map<
   string,
@@ -167,62 +162,14 @@ function markManualAuthUpstreamCompleted(state: string, now = Date.now()): numbe
   return now;
 }
 
-function listProviderTokenSnapshots(provider: CLIProxyProvider): ProviderTokenSnapshot[] {
-  const tokenDir = getProviderTokenDir(provider);
-  if (!fs.existsSync(tokenDir)) {
-    return [];
-  }
-
-  return fs
-    .readdirSync(tokenDir)
-    .filter((file) => file.endsWith('.json'))
-    .map((file): ProviderTokenSnapshot | null => {
-      const filePath = path.join(tokenDir, file);
-      if (!isTokenFileForProvider(filePath, provider)) {
-        return null;
-      }
-
-      let email: string | undefined;
-      try {
-        const content = fs.readFileSync(filePath, 'utf8');
-        const parsed = JSON.parse(content) as { email?: string };
-        email = typeof parsed.email === 'string' ? parsed.email : undefined;
-      } catch {
-        email = undefined;
-      }
-
-      const stats = fs.statSync(filePath);
-      return {
-        file,
-        mtimeMs: stats.mtimeMs,
-        email,
-      };
-    })
-    .filter((snapshot): snapshot is ProviderTokenSnapshot => snapshot !== null)
-    .sort((left, right) => right.mtimeMs - left.mtimeMs);
-}
-
 function findNewTokenSnapshotForPendingAuth(
   provider: CLIProxyProvider,
   pending: { expectedAccountId?: string; knownTokenFiles: ProviderTokenSnapshot[] }
 ): ProviderTokenSnapshot | null {
-  const knownTokenMtimes = new Map(
-    pending.knownTokenFiles.map((snapshot) => [snapshot.file, snapshot.mtimeMs])
-  );
-
-  return (
-    listProviderTokenSnapshots(provider).find((snapshot) => {
-      const knownMtime = knownTokenMtimes.get(snapshot.file);
-      if (knownMtime === undefined) {
-        return true;
-      }
-
-      if (!pending.expectedAccountId) {
-        return false;
-      }
-
-      return snapshot.mtimeMs > knownMtime + 1;
-    }) || null
+  return findNewTokenSnapshot(
+    listProviderTokenSnapshots(provider),
+    pending.knownTokenFiles,
+    pending.expectedAccountId
   );
 }
 
