@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { UsageTrendChart } from '@/components/analytics/usage-trend-chart';
 import { ModelBreakdownChart } from '@/components/analytics/model-breakdown-chart';
 import { SessionStatsCard } from '@/components/analytics/session-stats-card';
-import { CliproxyStatsCard } from '@/components/analytics/cliproxy-stats-card';
+import { CostLeverageCard } from '@/components/analytics/cost-leverage-card';
 import { TrendingUp, PieChart } from 'lucide-react';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { CostByModelCard } from './cost-by-model-card';
@@ -39,7 +39,7 @@ export function ChartsGrid({
   isHourlyLoading,
   isModelsLoading,
   isSessionsLoading,
-  isSummaryLoading,
+  isSummaryLoading: _isSummaryLoading,
   onModelClick,
 }: ChartsGridProps) {
   const { privacyMode } = usePrivacy();
@@ -94,8 +94,8 @@ export function ChartsGrid({
         {/* Session Stats */}
         <SessionStatsCard data={sessions} isLoading={isSessionsLoading} className="lg:col-span-2" />
 
-        {/* CLIProxy Stats */}
-        <CliproxyStatsCard isLoading={isSummaryLoading} className="lg:col-span-2" />
+        {/* Cost Leverage Ratio */}
+        <CostLeverageCard className="lg:col-span-2" />
       </div>
     </div>
   );
