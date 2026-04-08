@@ -1,3 +1,9 @@
-# Simplified pre-commit: only enforce conventional commit message format.
-# Full validation available via: bun run validate
-echo "[i] Pre-commit hook: commit message format only (use 'bun run validate' for full checks)"
+# Quick checks before commit (typecheck + lint + format).
+# Full CI parity is enforced by .husky/pre-push via validate:ci-parity.
+bun run typecheck && bun run lint:fix && bun run format:check
+
+# Validate UI if changes detected
+if git diff --cached --name-only | grep -q "^ui/"; then
+  echo "[i] UI changes detected, running ui:validate..."
+  bun run ui:validate
+fi
