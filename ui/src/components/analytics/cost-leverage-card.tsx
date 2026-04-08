@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Scale, DollarSign, TrendingDown } from 'lucide-react';
+import { Scale, DollarSign, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePrivacy, PRIVACY_BLUR_CLASS } from '@/contexts/privacy-context';
 import { useCostLeverage, type CostLeverageWindow } from '@/hooks/use-cost-leverage';
@@ -161,18 +161,16 @@ function RatioRow({
   const ratioColor =
     w.ratio === null
       ? 'text-muted-foreground'
-      : w.ratio <= 0.5
-        ? 'text-emerald-600 dark:text-emerald-400'
-        : w.ratio <= 1.0
+      : w.ratio < 2.5
+        ? 'text-red-600 dark:text-red-400'
+        : w.ratio < 10
           ? 'text-amber-600 dark:text-amber-400'
-          : 'text-red-600 dark:text-red-400';
+          : 'text-emerald-600 dark:text-emerald-400';
 
   return (
     <div className="flex items-center justify-between px-2 py-1 rounded-md bg-muted/50 border">
       <div className="flex items-center gap-1.5">
-        {w.ratio !== null && w.ratio <= 0.5 && (
-          <TrendingDown className="w-3 h-3 text-emerald-500" />
-        )}
+        {w.ratio !== null && w.ratio >= 10 && <TrendingUp className="w-3 h-3 text-emerald-500" />}
         <span className="text-[11px] text-muted-foreground font-medium">{t(labelKey)}</span>
       </div>
       <div className="flex items-center gap-3">
