@@ -142,7 +142,9 @@ export function useCostLeverage() {
       } else {
         updatedPrefs.baseline_cost_30d = value;
       }
-      return api.config.update({ preferences: updatedPrefs });
+      // Must include version for isUnifiedConfig validation on PUT endpoint
+      const version = typeof config.version === 'number' ? config.version : 12;
+      return api.config.update({ version, preferences: updatedPrefs });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cost-leverage-config'] });
