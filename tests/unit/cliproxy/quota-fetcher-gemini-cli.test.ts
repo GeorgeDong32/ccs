@@ -27,10 +27,10 @@ describe('Gemini CLI Quota Fetcher', () => {
   let refreshGeminiToken: typeof import('../../../src/cliproxy/auth/gemini-token-refresh').refreshGeminiToken;
   let getProviderAuthDir: typeof import('../../../src/cliproxy/config-generator').getProviderAuthDir;
 
-  function writeGeminiToken(token: Record<string, unknown>): string {
+  function writeGeminiToken(token: Record<string, unknown>, filename = 'gemini-test.json'): string {
     const authDir = getProviderAuthDir('gemini');
     fs.mkdirSync(authDir, { recursive: true });
-    const tokenPath = path.join(authDir, 'gemini-test.json');
+    const tokenPath = path.join(authDir, filename);
     fs.writeFileSync(tokenPath, JSON.stringify(token, null, 2));
     return tokenPath;
   }

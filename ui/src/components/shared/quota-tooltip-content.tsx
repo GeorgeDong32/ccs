@@ -21,14 +21,11 @@ import {
   type ModelTier,
   type UnifiedQuotaResult,
 } from '@/lib/utils';
-import type { ProviderEntitlementEvidence } from '@/lib/api-client';
 
 interface QuotaTooltipContentProps {
   quota: UnifiedQuotaResult | null | undefined;
   resetTime: string | null;
 }
-
-const lowQuotaTextClass = 'text-red-700 dark:text-red-400';
 
 function formatPlanLabel(planType: string | null | undefined): string | null {
   if (!planType) return null;
@@ -78,35 +75,6 @@ function getClaudeWindowDisplayLabel(rateLimitType: string, fallback: string): s
   }
 }
 
-function renderEntitlementRows(entitlement: ProviderEntitlementEvidence | undefined) {
-  if (!entitlement) return null;
-
-  const rows: Array<{ label: string; value: string | null }> = [];
-  if (entitlement.rawTierLabel) {
-    rows.push({ label: 'Tier', value: entitlement.rawTierLabel });
-  } else if (entitlement.normalizedTier !== 'unknown') {
-    rows.push({ label: 'Tier', value: entitlement.normalizedTier });
-  }
-  if (entitlement.rawTierId) {
-    rows.push({ label: 'Tier ID', value: entitlement.rawTierId });
-  }
-  if (entitlement.accessState !== 'entitled' || entitlement.capacityState !== 'available') {
-    rows.push({
-      label: 'State',
-      value: `${entitlement.accessState.replaceAll('_', ' ')} / ${entitlement.capacityState.replaceAll('_', ' ')}`,
-    });
-  }
-
-  if (rows.length === 0) return null;
-
-  return rows.map((row) => (
-    <div key={row.label} className="flex justify-between gap-4">
-      <span className="text-muted-foreground">{row.label}</span>
-      <span className="font-mono">{row.value}</span>
-    </div>
-  ));
-}
-
 /**
  * Renders provider-specific quota tooltip content
  * Uses type guards for proper TypeScript narrowing
@@ -126,7 +94,7 @@ export function QuotaTooltipContent({ quota, resetTime }: QuotaTooltipContentPro
           : 'text-foreground';
 
     return (
-      <div className="max-w-sm space-y-2 text-xs">
+      <div className="min-w-[16rem] space-y-2 text-xs">
         <div className="space-y-1">
           <p className={cn('font-semibold tracking-tight', failureToneClass)}>
             {failureInfo?.label || quota.error || 'Failed to load quota'}
@@ -162,7 +130,6 @@ export function QuotaTooltipContent({ quota, resetTime }: QuotaTooltipContentPro
 
     return (
       <div className="text-xs space-y-1.5">
-        {renderEntitlementRows(quota.entitlement)}
         <p className="font-medium">Model Quotas:</p>
         {tierOrder.map((tier, idx) => {
           const models = groups.get(tier);
@@ -173,10 +140,10 @@ export function QuotaTooltipContent({ quota, resetTime }: QuotaTooltipContentPro
               {!isFirst && <div className="my-1 border-t border-border/40" />}
               {models.map((m) => (
                 <div key={m.name} className="flex justify-between gap-4">
-                  <span className={cn('truncate', m.exhausted && lowQuotaTextClass)}>
+                  <span className={cn('truncate', m.exhausted && 'text-red-500')}>
                     {m.displayName}
                   </span>
-                  <span className={cn('font-mono', m.exhausted && lowQuotaTextClass)}>
+                  <span className={cn('font-mono', m.exhausted && 'text-red-500')}>
                     {m.percentage}%
                   </span>
                 </div>
@@ -213,7 +180,7 @@ export function QuotaTooltipContent({ quota, resetTime }: QuotaTooltipContentPro
             key={`${w.label}-${w.resetAt ?? 'no-reset'}-${index}`}
             className="flex justify-between gap-4"
           >
-            <span className={cn(w.remainingPercent < 20 && lowQuotaTextClass)}>
+            <span className={cn(w.remainingPercent < 20 && 'text-red-500')}>
               {getCodexWindowDisplayLabel(w, orderedWindows)}
             </span>
             <span className="font-mono">{w.remainingPercent}%</span>
@@ -281,7 +248,7 @@ export function QuotaTooltipContent({ quota, resetTime }: QuotaTooltipContentPro
             key={`${window.rateLimitType}-${window.resetAt ?? 'no-reset'}-${window.status}-${index}`}
             className="flex justify-between gap-4"
           >
-            <span className={cn(window.remainingPercent < 20 && lowQuotaTextClass)}>
+            <span className={cn(window.remainingPercent < 20 && 'text-red-500')}>
               {getClaudeWindowDisplayLabel(window.rateLimitType, window.label)}
             </span>
             <span className="font-mono">{window.remainingPercent}%</span>
@@ -299,13 +266,10 @@ export function QuotaTooltipContent({ quota, resetTime }: QuotaTooltipContentPro
   // Gemini provider tooltip
   if (isGeminiQuotaResult(quota)) {
     const hasBucketResetTime = quota.buckets.some((bucket) => !!bucket.resetTime);
-    const hasEntitlementTier =
-      !!quota.entitlement?.rawTierLabel || quota.entitlement?.normalizedTier !== 'unknown';
 
     return (
       <div className="text-xs space-y-1.5">
-        {renderEntitlementRows(quota.entitlement)}
-        {!hasEntitlementTier && quota.tierLabel && (
+        {quota.tierLabel && (
           <div className="flex justify-between gap-4">
             <span className="text-muted-foreground">Tier</span>
             <span className="font-mono">{quota.tierLabel}</span>
@@ -321,7 +285,7 @@ export function QuotaTooltipContent({ quota, resetTime }: QuotaTooltipContentPro
         {quota.buckets.map((b) => (
           <div key={b.id} className="space-y-0.5">
             <div className="flex justify-between gap-4">
-              <span className={cn(b.remainingPercent < 20 && lowQuotaTextClass)}>
+              <span className={cn(b.remainingPercent < 20 && 'text-red-500')}>
                 {b.label}
                 {b.tokenType ? ` (${b.tokenType})` : ''}
               </span>
@@ -363,8 +327,8 @@ export function QuotaTooltipContent({ quota, resetTime }: QuotaTooltipContentPro
           return (
             <div key={label} className="space-y-0.5">
               <div className="flex justify-between gap-4">
-                <span className={cn(isLow && lowQuotaTextClass)}>{label}</span>
-                <span className={cn('font-mono', isLow && lowQuotaTextClass)}>
+                <span className={cn(isLow && 'text-red-500')}>{label}</span>
+                <span className={cn('font-mono', isLow && 'text-red-500')}>
                   {snapshot.unlimited
                     ? 'Unlimited'
                     : `${formatQuotaPercent(snapshot.percentRemaining)}%`}
