@@ -183,6 +183,16 @@ describe('Gemini CLI Quota Fetcher', () => {
       ]);
     });
 
+    it('should keep Gemini 3.1 Flash Lite preview inside the Flash Lite family', () => {
+      const rawBuckets = [{ model_id: 'gemini-3.1-flash-lite-preview', remaining_fraction: 0.65 }];
+
+      const buckets = buildGeminiCliBuckets(rawBuckets);
+
+      expect(buckets).toHaveLength(1);
+      expect(buckets[0].label).toBe('Gemini Flash Lite Series');
+      expect(buckets[0].modelIds).toContain('gemini-3.1-flash-lite-preview');
+    });
+
     it('should recognize Gemini 3.1 preview IDs during the rollout', () => {
       const rawBuckets = [
         { model_id: 'gemini-3.1-flash-preview', remaining_fraction: 0.7 },
@@ -403,6 +413,13 @@ describe('Gemini CLI Quota Fetcher', () => {
       expect(result.tierLabel).toBe('Pro');
       expect(result.tierId).toBe('g1-pro-tier');
       expect(result.creditBalance).toBe(12);
+      expect(result.entitlement).toMatchObject({
+        normalizedTier: 'pro',
+        rawTierId: 'g1-pro-tier',
+        rawTierLabel: 'Pro',
+        accessState: 'entitled',
+        capacityState: 'available',
+      });
       expect(result.buckets.map((bucket) => bucket.label)).toEqual([
         'Gemini Flash Lite Series',
         'Gemini Flash Series',
@@ -648,6 +665,216 @@ describe('Gemini CLI Quota Fetcher', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe('Gemini quota service unavailable (HTTP 502)');
       expect(result.errorDetail).toBe('[HTML error response omitted]');
+    });
+
+    it('refreshes the requested Gemini account instead of the default account', async () => {
+      writeGeminiToken(
+        {
+          type: 'gemini',
+          email: 'default@example.com',
+          project_id: 'default-project',
+          token: {
+            access_token: 'default-access-token',
+            refresh_token: 'default-refresh-token',
+            expiry: Date.now() + 60 * 60 * 1000,
+            client_id: 'default-client-id',
+            client_secret: 'default-client-secret',
+            token_uri: GOOGLE_TOKEN_URL,
+          },
+        },
+        'gemini-default.json'
+      );
+
+      writeGeminiToken(
+        {
+          type: 'gemini',
+          email: 'target@example.com',
+          project_id: 'target-project',
+          token: {
+            access_token: 'target-stale-token',
+            refresh_token: 'target-refresh-token',
+            expiry: Date.now() - 1000,
+            client_id: 'target-client-id',
+            client_secret: 'target-client-secret',
+            token_uri: GOOGLE_TOKEN_URL,
+          },
+        },
+        'gemini-target.json'
+      );
+
+      mockFetch([
+        {
+          url: GOOGLE_TOKEN_URL,
+          method: 'POST',
+          response: { access_token: 'target-fresh-token', expires_in: 1800 },
+        },
+        {
+          url: GEMINI_QUOTA_URL,
+          method: 'POST',
+          status: 200,
+          response: {
+            buckets: [{ model_id: 'gemini-3-flash-preview', remaining_fraction: 0.88 }],
+          },
+        },
+        {
+          url: GEMINI_CODE_ASSIST_URL,
+          method: 'POST',
+          status: 503,
+          response: { error: { message: 'supplementary unavailable' } },
+        },
+      ]);
+
+      const result = await fetchGeminiCliQuota('target@example.com');
+
+      expect(result.success).toBe(true);
+
+      const [refreshRequest, quotaRequest] = getCapturedFetchRequests();
+      expect(refreshRequest.url).toBe(GOOGLE_TOKEN_URL);
+      expect(refreshRequest.body).toContain('refresh_token=target-refresh-token');
+      expect(refreshRequest.body).not.toContain('default-refresh-token');
+      expect(quotaRequest.headers.Authorization).toBe('Bearer target-fresh-token');
+    });
+
+    it('retries a 401 quota failure after a transient proactive refresh failure', async () => {
+      writeGeminiToken(
+        {
+          type: 'gemini',
+          email: 'retry@example.com',
+          project_id: 'retry-project',
+          token: {
+            access_token: 'retry-stale-token',
+            refresh_token: 'retry-refresh-token',
+            expiry: Date.now() + 60 * 1000,
+            client_id: 'retry-client-id',
+            client_secret: 'retry-client-secret',
+            token_uri: GOOGLE_TOKEN_URL,
+          },
+        },
+        'gemini-retry.json'
+      );
+
+      mockFetch([
+        {
+          url: GOOGLE_TOKEN_URL,
+          method: 'POST',
+          response: { access_token: 'unused-default', expires_in: 1800 },
+        },
+        {
+          url: GEMINI_QUOTA_URL,
+          method: 'POST',
+          status: 200,
+          response: {
+            buckets: [{ model_id: 'gemini-3-flash-preview', remaining_fraction: 0.9 }],
+          },
+        },
+        {
+          url: GEMINI_CODE_ASSIST_URL,
+          method: 'POST',
+          status: 503,
+          response: { error: { message: 'supplementary unavailable' } },
+        },
+      ]);
+
+      const originalFetch = globalThis.fetch;
+      let refreshAttempt = 0;
+      let quotaAttempt = 0;
+      globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url =
+          typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+
+        if (url === GOOGLE_TOKEN_URL) {
+          refreshAttempt += 1;
+          return refreshAttempt === 1
+            ? new Response(JSON.stringify({ error: 'temporarily_unavailable' }), {
+                status: 503,
+                headers: { 'Content-Type': 'application/json' },
+              })
+            : new Response(JSON.stringify({ access_token: 'retry-fresh-token', expires_in: 1800 }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              });
+        }
+
+        if (url === GEMINI_QUOTA_URL) {
+          quotaAttempt += 1;
+          return quotaAttempt === 1
+            ? new Response(
+                JSON.stringify({
+                  error: {
+                    message: 'Session expired',
+                    status: 'UNAUTHENTICATED',
+                  },
+                }),
+                {
+                  status: 401,
+                  headers: { 'Content-Type': 'application/json' },
+                }
+              )
+            : new Response(
+                JSON.stringify({
+                  buckets: [{ model_id: 'gemini-3-flash-preview', remaining_fraction: 0.9 }],
+                }),
+                {
+                  status: 200,
+                  headers: { 'Content-Type': 'application/json' },
+                }
+              );
+        }
+
+        return originalFetch(input, init);
+      }) as typeof fetch;
+
+      try {
+        const result = await fetchGeminiCliQuota('retry@example.com');
+
+        expect(result.success).toBe(true);
+        expect(refreshAttempt).toBe(2);
+        expect(quotaAttempt).toBe(2);
+
+        const storedToken = JSON.parse(
+          fs.readFileSync(path.join(getProviderAuthDir('gemini'), 'gemini-retry.json'), 'utf8')
+        ) as { token?: { access_token?: string } };
+        expect(storedToken.token?.access_token).toBe('retry-fresh-token');
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('classifies model capacity exhaustion separately from generic rate limits', async () => {
+      writeActiveGeminiAccount('capacity@example.com');
+
+      mockFetch([
+        {
+          url: GEMINI_QUOTA_URL,
+          method: 'POST',
+          status: 429,
+          response: {
+            error: {
+              code: 429,
+              message: 'No capacity available for model gemini-3.1-pro-preview on the server',
+              status: 'RESOURCE_EXHAUSTED',
+              details: [
+                {
+                  '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+                  reason: 'MODEL_CAPACITY_EXHAUSTED',
+                  metadata: { model: 'gemini-3.1-pro-preview' },
+                },
+              ],
+            },
+          },
+        },
+      ]);
+
+      const result = await fetchGeminiCliQuota('capacity@example.com');
+
+      expect(result.success).toBe(false);
+      expect(result.httpStatus).toBe(429);
+      expect(result.errorCode).toBe('capacity_exhausted');
+      expect(result.retryable).toBe(true);
+      expect(result.entitlement).toMatchObject({
+        accessState: 'entitled',
+        capacityState: 'capacity_exhausted',
+      });
     });
   });
 
