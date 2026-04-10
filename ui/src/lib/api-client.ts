@@ -9,9 +9,11 @@ import type {
   ListAiProvidersResult,
   UpsertAiProviderEntryInput,
 } from '../../../src/cliproxy/ai-providers';
+import type { ProviderEntitlementEvidence } from '../../../src/cliproxy/provider-entitlement-types';
 
 export const API_BASE_URL = '/api';
 export const API_CONFLICT_ERROR_CODE = 'CONFLICT';
+export type { ProviderEntitlementEvidence };
 
 export class ApiConflictError extends Error {
   readonly code = API_CONFLICT_ERROR_CODE;
@@ -472,28 +474,6 @@ export interface QuotaResult {
   needsReauth?: boolean;
   /** Richer provider entitlement evidence derived from live/runtime signals */
   entitlement?: ProviderEntitlementEvidence;
-}
-
-export interface ProviderEntitlementEvidence {
-  normalizedTier: 'free' | 'pro' | 'ultra' | 'unknown';
-  rawTierId: string | null;
-  rawTierLabel: string | null;
-  source: 'runtime_api' | 'runtime_inference' | 'registry_cache' | 'official_docs';
-  confidence: 'high' | 'medium' | 'low';
-  accessState:
-    | 'entitled'
-    | 'not_entitled'
-    | 'capacity_exhausted'
-    | 'temporarily_unavailable'
-    | 'unknown';
-  capacityState:
-    | 'available'
-    | 'capacity_exhausted'
-    | 'rate_limited'
-    | 'temporarily_unavailable'
-    | 'unknown';
-  lastVerifiedAt: number;
-  notes?: string | null;
 }
 
 /** Codex rate limit window */
