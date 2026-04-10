@@ -59,6 +59,19 @@ function getCompactAudienceBadgeLabel(audience: 'business' | 'personal' | 'unkno
   return '?';
 }
 
+function resolveEffectiveTier(
+  tier: AccountTier | undefined,
+  quota: UnifiedQuotaResult | undefined
+): AccountTier | undefined {
+  if (quota && 'entitlement' in quota) {
+    const entitlementTier = quota.entitlement?.normalizedTier;
+    if (entitlementTier && entitlementTier !== 'unknown') {
+      return entitlementTier;
+    }
+  }
+  return tier;
+}
+
 export function AccountSurfaceCard({
   mode,
   provider,
@@ -85,13 +98,14 @@ export function AccountSurfaceCard({
   const identity = getAccountIdentityPresentation(accountId, email, tokenFile);
   const title = displayEmail || identity.email || accountId;
   const normalizedProvider = provider.toLowerCase();
+  const effectiveTier = resolveEffectiveTier(tier, quota);
   const showTierBadge =
     (normalizedProvider === 'agy' ||
       normalizedProvider === 'antigravity' ||
       normalizedProvider === 'gemini') &&
-    tier &&
-    tier !== 'unknown' &&
-    tier !== 'free';
+    effectiveTier &&
+    effectiveTier !== 'unknown' &&
+    effectiveTier !== 'free';
   const isCompact = mode === 'compact';
   const defaultCompactMetaBadges = (
     <>
@@ -99,10 +113,10 @@ export function AccountSurfaceCard({
         <span
           className={cn(
             'text-[8px] font-semibold px-1.5 py-0.5 rounded-md shrink-0',
-            getTierBadgeClass(tier)
+            getTierBadgeClass(effectiveTier)
           )}
         >
-          {tier}
+          {effectiveTier}
         </span>
       )}
       {identity.audienceLabel && (
@@ -145,12 +159,12 @@ export function AccountSurfaceCard({
                 <span
                   className={cn(
                     'absolute -bottom-0.5 -right-0.5 text-[7px] font-bold uppercase px-1 py-px rounded ring-1 ring-background',
-                    tier === 'ultra'
+                    effectiveTier === 'ultra'
                       ? 'bg-violet-500/20 text-violet-600 dark:bg-violet-500/30 dark:text-violet-300'
                       : 'bg-yellow-500/20 text-yellow-700 dark:bg-yellow-500/25 dark:text-yellow-400'
                   )}
                 >
-                  {tier === 'ultra' ? 'U' : 'P'}
+                  {effectiveTier === 'ultra' ? 'U' : 'P'}
                 </span>
               )}
             </div>
