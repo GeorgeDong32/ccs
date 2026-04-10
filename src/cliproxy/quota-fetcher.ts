@@ -698,6 +698,14 @@ async function fetchAvailableModels(
       error: 'Invalid quota response from provider',
       errorCode: 'provider_unavailable',
       retryable: true,
+      entitlement: buildProviderEntitlementEvidence({
+        normalizedTier: 'unknown',
+        source: 'runtime_inference',
+        confidence: 'low',
+        accessState: 'unknown',
+        capacityState: 'temporarily_unavailable',
+        notes: 'Provider returned a 2xx response with an empty or invalid quota payload.',
+      }),
     };
   }
 
@@ -814,6 +822,7 @@ export async function fetchAccountQuota(
       httpStatus: lastProjectResult.httpStatus,
       needsReauth: lastProjectResult.needsReauth,
       isUnprovisioned: lastProjectResult.isUnprovisioned,
+      entitlement: lastProjectResult.entitlement,
       isExpired: authData.isExpired,
       expiresAt: authData.expiresAt || undefined,
     };
