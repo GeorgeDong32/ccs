@@ -25,6 +25,120 @@ import {
   stopCliproxySync,
   syncCliproxyUsage,
 } from './cliproxy-usage-syncer';
+import { loadCursorData } from './cursor-data-store';
+import { calculateCost } from '../model-pricing';
+import type { CursorUsageEvent } from './cursor-csv-parser';
+import type { ModelBreakdown } from './types';
+
+// ============================================================================
+// Cursor Usage Data Source
+// ============================================================================
+
+/** Extract YYYY-MM-DD from ISO timestamp */
+function extractDateFromTimestamp(timestamp: string): string {
+  return timestamp.slice(0, 10);
+}
+
+/**
+ * Load and aggregate Cursor usage data from disk cache
+ * Converts CursorUsageEvent[] into DailyUsage format compatible with existing charts
+ */
+function loadCursorUsageData(): DailyUsage[] {
+  const events = loadCursorData();
+  if (events.length === 0) return [];
+
+  // Group events by date
+  const byDate = new Map<string, CursorUsageEvent[]>();
+  for (const event of events) {
+    const date = extractDateFromTimestamp(event.timestamp);
+    const existing = byDate.get(date) || [];
+    existing.push(event);
+    byDate.set(date, existing);
+  }
+
+  // Build daily summaries using same pattern as aggregateDailyUsage
+  const dailyUsage: DailyUsage[] = [];
+
+  for (const [date, dateEvents] of byDate) {
+    // Aggregate by model
+    const modelMap = new Map<
+      string,
+      {
+        inputTokens: number;
+        outputTokens: number;
+        cacheCreationTokens: number;
+        cacheReadTokens: number;
+      }
+    >();
+
+    let totalInput = 0;
+    let totalOutput = 0;
+    let totalCacheCreation = 0;
+    let totalCacheRead = 0;
+
+    for (const event of dateEvents) {
+      const acc = modelMap.get(event.model) || {
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 0,
+      };
+
+      acc.inputTokens += event.inputTokens;
+      acc.outputTokens += event.outputTokens;
+      acc.cacheCreationTokens += event.cacheWriteTokens;
+      acc.cacheReadTokens += event.cacheReadTokens;
+      modelMap.set(event.model, acc);
+
+      totalInput += event.inputTokens;
+      totalOutput += event.outputTokens;
+      totalCacheCreation += event.cacheWriteTokens;
+      totalCacheRead += event.cacheReadTokens;
+    }
+
+    // Build model breakdowns with cost
+    const modelBreakdowns: ModelBreakdown[] = [];
+    let totalCost = 0;
+
+    for (const [modelName, acc] of modelMap) {
+      const cost = calculateCost(
+        {
+          inputTokens: acc.inputTokens,
+          outputTokens: acc.outputTokens,
+          cacheCreationTokens: acc.cacheCreationTokens,
+          cacheReadTokens: acc.cacheReadTokens,
+        },
+        modelName
+      );
+      modelBreakdowns.push({
+        modelName,
+        inputTokens: acc.inputTokens,
+        outputTokens: acc.outputTokens,
+        cacheCreationTokens: acc.cacheCreationTokens,
+        cacheReadTokens: acc.cacheReadTokens,
+        cost,
+      });
+      totalCost += cost;
+    }
+
+    modelBreakdowns.sort((a, b) => b.cost - a.cost);
+
+    dailyUsage.push({
+      date,
+      source: 'cursor',
+      inputTokens: totalInput,
+      outputTokens: totalOutput,
+      cacheCreationTokens: totalCacheCreation,
+      cacheReadTokens: totalCacheRead,
+      cost: totalCost,
+      totalCost,
+      modelsUsed: Array.from(modelMap.keys()),
+      modelBreakdowns,
+    });
+  }
+
+  return dailyUsage.sort((a, b) => a.date.localeCompare(b.date));
+}
 
 // ============================================================================
 // Multi-Instance Support - Aggregate usage from CCS profiles
@@ -350,6 +464,17 @@ async function refreshFromSource(): Promise<{
     }
   } catch (err) {
     console.error(fail(`Failed to load CLIProxy usage data: ${err}`));
+  }
+
+  // Load Cursor usage data (from imported CSV cache)
+  try {
+    const cursorDaily = loadCursorUsageData();
+    if (cursorDaily.length > 0) {
+      allDailySources.push(cursorDaily);
+      console.log(info(`Included Cursor usage data (${cursorDaily.length} days)`));
+    }
+  } catch (err) {
+    console.error(fail(`Failed to load Cursor usage data: ${err}`));
   }
 
   // Merge all data sources

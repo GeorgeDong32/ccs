@@ -18,6 +18,19 @@ import {
 import { getCursorConfig, mutateUnifiedConfig } from '../config/unified-config-loader';
 import { DEFAULT_CURSOR_CONFIG } from '../config/unified-config-types';
 import { renderCursorHelp, renderCursorModels, renderCursorStatus } from './cursor-command-display';
+import {
+  renderCursorUsageImport,
+  renderCursorUsageStatus,
+  renderCursorUsageClear,
+  renderCursorUsageError,
+  renderCursorUsageHelp,
+} from './cursor-usage-display';
+import {
+  importCsvFile,
+  getCursorStatus,
+  clearCursorData,
+} from '../web-server/usage/cursor-data-store';
+import { CursorCsvError } from '../web-server/usage/cursor-csv-parser';
 import { ok, fail, info } from '../utils/ui';
 
 /**
@@ -41,6 +54,8 @@ export async function handleCursorCommand(args: string[]): Promise<number> {
       return handleEnable();
     case 'disable':
       return handleDisable();
+    case 'usage':
+      return handleUsage(args.slice(1));
     case undefined:
       return handleHelp();
     case 'help':
@@ -252,4 +267,45 @@ async function handleDisable(): Promise<number> {
 
   console.log(ok('Cursor integration disabled'));
   return 0;
+}
+
+/**
+ * Handle usage subcommand — import, show, or clear Cursor usage data
+ */
+async function handleUsage(args: string[]): Promise<number> {
+  if (args.includes('--help') || args.includes('-h')) {
+    return renderCursorUsageHelp();
+  }
+
+  if (args.includes('--import')) {
+    const filePath = parseOptionValue(args, '--import');
+    if (!filePath) {
+      console.error(fail('--import requires a file path'));
+      console.error('  Usage: ccs cursor usage --import <file>');
+      return 1;
+    }
+
+    try {
+      const result = await importCsvFile(filePath);
+      return renderCursorUsageImport(result);
+    } catch (error) {
+      if (error instanceof CursorCsvError) {
+        return renderCursorUsageError(error.message, error.details);
+      }
+      return renderCursorUsageError(error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+
+  if (args.includes('--clear')) {
+    const count = clearCursorData();
+    return renderCursorUsageClear(count);
+  }
+
+  if (args.includes('--show') || args.length === 0) {
+    const status = getCursorStatus();
+    return renderCursorUsageStatus(status);
+  }
+
+  console.error(fail(`Unknown usage option: ${args[0]}`));
+  return renderCursorUsageHelp();
 }

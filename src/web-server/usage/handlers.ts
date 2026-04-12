@@ -16,6 +16,11 @@ import {
   getLastFetchTimestamp,
   refreshUsageCache,
 } from './aggregator';
+import { importCsvFile, getCursorStatus, clearCursorData } from './cursor-data-store';
+import { CursorCsvError } from './cursor-csv-parser';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 
 // ============================================================================
 // Types
@@ -635,4 +640,85 @@ export async function handleInsights(
   } catch (error) {
     errorResponse(res, error, 'Failed to fetch usage insights');
   }
+}
+
+// ============================================================================
+// Cursor Usage Handlers
+// ============================================================================
+
+/**
+ * Handle CSV file upload from Cursor usage export
+ * Writes uploaded file to temp, parses, imports, then cleans up
+ */
+export async function handleCursorImport(req: Request, res: Response): Promise<void> {
+  let tempFilePath: string | null = null;
+
+  try {
+    if (!req.file) {
+      res.status(400).json({
+        success: false,
+        error: 'No file uploaded',
+        details: "Expected multipart form data with 'file' field",
+      });
+      return;
+    }
+
+    // Write buffer to temp file for streaming parser
+    tempFilePath = path.join(os.tmpdir(), `cursor-usage-${Date.now()}.csv`);
+    fs.writeFileSync(tempFilePath, req.file.buffer);
+
+    const result = await importCsvFile(tempFilePath);
+
+    // Trigger cache refresh so aggregator picks up new Cursor data
+    refreshUsageCache().catch(() => {
+      // Non-blocking refresh — data available next request
+    });
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    if (error instanceof CursorCsvError) {
+      res.status(422).json({
+        success: false,
+        error: error.message,
+        details: error.details,
+      });
+      return;
+    }
+    errorResponse(res, error, 'Failed to import Cursor usage data');
+  } finally {
+    // Clean up temp file
+    if (tempFilePath) {
+      try {
+        fs.unlinkSync(tempFilePath);
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+  }
+}
+
+/**
+ * Return current Cursor usage data status
+ */
+export function handleCursorStatus(_req: Request, res: Response): void {
+  const status = getCursorStatus();
+  res.json({ success: true, data: status });
+}
+
+/**
+ * Clear all stored Cursor usage data
+ */
+export function handleCursorDataClear(_req: Request, res: Response): void {
+  const eventsRemoved = clearCursorData();
+
+  // Trigger cache refresh
+  refreshUsageCache().catch(() => {});
+
+  res.json({
+    success: true,
+    data: {
+      message: 'Cursor usage data cleared',
+      eventsRemoved,
+    },
+  });
 }
