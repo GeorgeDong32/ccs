@@ -438,6 +438,18 @@ const PRICING_REGISTRY: Record<string, ModelPricing> = {
   // ---------------------------------------------------------------------------
   // GLM Models (Zhipu AI / Z.AI) - Source: OpenRouter verified pricing
   // ---------------------------------------------------------------------------
+  'glm-5.1': {
+    inputPerMillion: 1.4,
+    outputPerMillion: 4.4,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.26,
+  },
+  'glm-5-turbo': {
+    inputPerMillion: 1.2,
+    outputPerMillion: 4.0,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.24,
+  },
   'glm-5': {
     inputPerMillion: 1.0,
     outputPerMillion: 3.2,
@@ -585,6 +597,12 @@ const PRICING_REGISTRY: Record<string, ModelPricing> = {
   // ---------------------------------------------------------------------------
   // MiniMax Models - Source: https://platform.minimax.io/docs/pricing/pay-as-you-go
   // ---------------------------------------------------------------------------
+  'MiniMax-M2.7': {
+    inputPerMillion: 0.3,
+    outputPerMillion: 1.2,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.06,
+  },
   'MiniMax-M2.5': {
     inputPerMillion: 0.3,
     outputPerMillion: 1.2,
