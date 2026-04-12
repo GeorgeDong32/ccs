@@ -58,10 +58,26 @@ function ensureCacheDir(): void {
 }
 
 /**
- * Create a composite key for deduplication: (timestamp, model, requests)
+ * Create a composite key for deduplication using all event fields.
+ * Two events are considered identical only when every field matches,
+ * preventing false collisions when same-timestamp same-model events
+ * have different token counts.
  */
 function eventKey(event: CursorUsageEvent): string {
-  return `${event.timestamp}|${event.model}|${event.requests}`;
+  return [
+    event.timestamp,
+    event.model,
+    event.kind,
+    event.maxMode ? '1' : '0',
+    event.inputTokens,
+    event.cacheWriteTokens,
+    event.cacheReadTokens,
+    event.outputTokens,
+    event.totalTokens,
+    event.requests,
+    event.cloudAgentId,
+    event.automationId,
+  ].join('|');
 }
 
 /**
