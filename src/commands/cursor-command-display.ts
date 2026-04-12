@@ -23,6 +23,7 @@ export function renderCursorHelp(): number {
     '  stop      Stop cursor daemon',
     '  enable    Enable cursor integration in unified config',
     '  disable   Disable cursor integration in unified config',
+    '  usage     Import and view Cursor usage statistics',
     '  help      Show this help message',
     '',
     'Runtime entry:',

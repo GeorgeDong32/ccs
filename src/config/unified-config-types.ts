@@ -237,6 +237,8 @@ export interface PreferencesConfig {
   telemetry?: boolean;
   /** Enable automatic update checks */
   auto_update?: boolean;
+  /** Baseline 30-day cost (USD) for cost leverage ratio calculation on Analyze dashboard */
+  baseline_cost_30d?: number;
 }
 
 /**

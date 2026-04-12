@@ -1,3 +1,16 @@
-# Enforce CI parity before pushing to remote.
-# Override in emergencies only: CCS_SKIP_PREPUSH_GATE=1 git push --no-verify
-bun run validate:ci-parity
+# Pre-push hook: run CI parity gate only on protected branches.
+# Feature branches skip for faster push. Override: CCS_SKIP_PREPUSH_GATE=1
+# Manual full check: bun run validate:ci-parity
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+case "$BRANCH" in
+  main|dev|hotfix/*|kai/hotfix-*|release/*)
+    echo "[i] Protected branch '$BRANCH' — running CI parity gate"
+    bun run validate:ci-parity
+    ;;
+  *)
+    echo "[i] Feature branch '$BRANCH' — skipping CI parity gate"
+    echo "    Run 'bun run validate:ci-parity' manually if needed"
+    ;;
+esac

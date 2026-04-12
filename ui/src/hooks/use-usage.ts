@@ -132,6 +132,27 @@ export interface UsageStatus {
   cacheSize: number;
 }
 
+/** Cursor usage import result */
+export interface CursorImportResult {
+  rowsParsed: number;
+  rowsSkipped: number;
+  dateRange: { from: string; to: string } | null;
+  totalTokens: number;
+  totalRequests: number;
+  models: string[];
+  mergedWithExisting: boolean;
+}
+
+/** Cursor usage data status */
+export interface CursorDataStatus {
+  hasData: boolean;
+  importedAt: string | null;
+  dateRange: { from: string; to: string } | null;
+  totalEvents: number;
+  totalTokens: number;
+  models: string[];
+}
+
 // API
 const BASE_URL = '/api';
 
@@ -207,6 +228,35 @@ export const usageApi = {
     if (options?.endDate) params.append('until', formatDateForApi(options.endDate));
     if (options?.profile) params.append('profile', options.profile);
     return request<UsageInsights>(`/usage/insights?${params}`);
+  },
+  /** Import Cursor usage CSV file */
+  cursorImport: async (file: File): Promise<CursorImportResult> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch('/api/usage/cursor/import', {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Upload failed' }));
+      throw new Error(error.error || 'Failed to import Cursor usage data');
+    }
+    const result = await response.json();
+    return result.data;
+  },
+  /** Get Cursor data import status */
+  cursorStatus: async (): Promise<CursorDataStatus> => {
+    const response = await fetch('/api/usage/cursor/status');
+    if (!response.ok) throw new Error('Failed to fetch Cursor status');
+    const result = await response.json();
+    return result.data;
+  },
+  /** Clear stored Cursor data */
+  cursorDataClear: async (): Promise<{ message: string; eventsRemoved: number }> => {
+    const response = await fetch('/api/usage/cursor/data', { method: 'DELETE' });
+    if (!response.ok) throw new Error('Failed to clear Cursor data');
+    const result = await response.json();
+    return result.data;
   },
 };
 

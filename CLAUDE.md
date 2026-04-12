@@ -533,6 +533,10 @@ rm -rf ~/.ccs             # Clean environment
 - TypeScript 5.9 + React 19.2, Vite 7.2, Recharts 2.12, Tailwind CSS 4.1 (001-dashboard-ui-polish)
 - N/A (no data storage changes) (001-dashboard-ui-polish)
 - TypeScript 5.9 + React 19.2, react-i18next, i18nex (002-analytics-i18n-zh)
+- TypeScript 5.9 + React 19.2 + React, i18next, shadcn/ui, Tailwind CSS 4.1 (003-cost-leverage-ratio)
+- config.yaml (PreferencesConfig section) via existing `/api/config` endpoin (003-cost-leverage-ratio)
+- TypeScript 5.9 (strict mode) + Express (backend), React 19.2 + Recharts 2.12 (frontend), React Query (data fetching) (005-cursor-usage-stats)
+- File-based disk cache (`~/.ccs/cache/cursor-usage.json`), following existing `disk-cache.ts` pattern (005-cursor-usage-stats)
 
 ## Recent Changes
 - 001-dashboard-ui-polish: Added TypeScript 5.9 + React 19.2, Vite 7.2, Recharts 2.12, Tailwind CSS 4.1

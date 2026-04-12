@@ -1,6 +1,6 @@
 {
   "name": "@georgedong32/ccs",
-  "version": "7.66.1",
+  "version": "7.67.0",
   "description": "Claude Code Switch - Instant profile switching between Claude, GLM, Kimi, and more",
   "keywords": [
     "cli",
@@ -106,6 +106,7 @@
     "https-proxy-agent": "^7.0.6",
     "js-yaml": "^4.1.1",
     "listr2": "^3.14.0",
+    "multer": "^2.1.1",
     "open": "^8.4.2",
     "ora": "^5.4.1",
     "proper-lockfile": "^4.1.2",
@@ -129,6 +130,7 @@
     "@types/express-rate-limit": "6.0.0",
     "@types/express-session": "^1.18.2",
     "@types/js-yaml": "^4.0.9",
+    "@types/multer": "^2.1.0",
     "@types/node": "^20.19.25",
     "@types/proper-lockfile": "^4.1.4",
     "@types/ws": "^8.5.10",
