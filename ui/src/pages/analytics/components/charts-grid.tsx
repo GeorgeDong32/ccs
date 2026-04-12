@@ -10,7 +10,6 @@ import { UsageTrendChart } from '@/components/analytics/usage-trend-chart';
 import { ModelBreakdownChart } from '@/components/analytics/model-breakdown-chart';
 import { SessionStatsCard } from '@/components/analytics/session-stats-card';
 import { CostLeverageCard } from '@/components/analytics/cost-leverage-card';
-import { CursorImportCard } from '@/components/analytics/cursor-import-card';
 import { TrendingUp, PieChart } from 'lucide-react';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { CostByModelCard } from './cost-by-model-card';
@@ -66,7 +65,7 @@ export function ChartsGrid({
       </Card>
 
       {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-auto min-h-[220px] lg:h-full lg:min-h-[220px] lg:grid-rows-[minmax(0,1fr)] lg:[&>*]:min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 h-auto min-h-[220px] lg:h-full lg:min-h-[220px] lg:grid-rows-[minmax(0,1fr)] lg:[&>*]:min-h-0">
         {/* Cost by Model */}
         <CostByModelCard
           models={models}
@@ -97,9 +96,6 @@ export function ChartsGrid({
 
         {/* Cost Leverage Ratio */}
         <CostLeverageCard className="lg:col-span-2" />
-
-        {/* Cursor Usage Import */}
-        <CursorImportCard className="lg:col-span-2" />
       </div>
     </div>
   );
