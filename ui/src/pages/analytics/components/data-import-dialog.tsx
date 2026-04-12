@@ -19,6 +19,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -36,7 +37,7 @@ export function DataImportDialog() {
   const [importError, setImportError] = useState<string | null>(null);
 
   const importMutation = useCursorImport();
-  const { data: status } = useCursorStatus();
+  const { data: status, isLoading: isStatusLoading } = useCursorStatus();
   const clearMutation = useCursorDataClear();
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,14 +61,17 @@ export function DataImportDialog() {
     try {
       await clearMutation.mutateAsync();
     } catch {
-      // Silently handle clear errors
+      setImportError(t('analyticsCursor.errorMessage'));
     }
   };
 
   const formatNumber = (n: number) =>
     n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n.toLocaleString();
 
-  const formatDate = (d: string) => `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`;
+  const formatDate = (d: string) => {
+    if (!d || d.length < 8) return d;
+    return `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`;
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -83,6 +87,7 @@ export function DataImportDialog() {
             <Database className="w-4 h-4" />
             {t('analytics.importData')}
           </DialogTitle>
+          <DialogDescription>{t('analyticsCursor.fileHint')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -137,7 +142,7 @@ export function DataImportDialog() {
             )}
 
             {/* Status display */}
-            {status?.hasData ? (
+            {isStatusLoading ? null : status?.hasData ? (
               <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1.5">
                 {status.dateRange && (
                   <div className="text-muted-foreground">
