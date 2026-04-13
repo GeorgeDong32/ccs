@@ -1,8 +1,7 @@
 name: Sync Dev After Main Release
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
 
 jobs:
   sync-dev:

@@ -1,6 +1,6 @@
 {
   "name": "@georgedong32/ccs",
-  "version": "7.67.0",
+  "version": "7.67.1",
   "description": "Claude Code Switch - Instant profile switching between Claude, GLM, Kimi, and more",
   "keywords": [
     "cli",
@@ -10,18 +10,17 @@
     "profile",
     "switch"
   ],
-  "homepage": "https://github.com/kaitranntt/ccs",
+  "homepage": "https://github.com/GeorgeDong32/ccs",
   "bugs": {
-    "url": "https://github.com/kaitranntt/ccs/issues"
+    "url": "https://github.com/GeorgeDong32/ccs/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kaitranntt/ccs.git"
+    "url": "git+https://github.com/GeorgeDong32/ccs.git"
   },
   "license": "MIT",
   "author": {
-    "name": "Tam Nhu Tran (Kai)",
-    "email": "kaitranntt@users.noreply.github.com"
+    "name": "George Dong"
   },
   "main": "dist/ccs.js",
   "types": "dist/ccs.d.ts",
