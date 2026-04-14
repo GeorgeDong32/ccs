@@ -6,14 +6,11 @@ on:
 
 jobs:
   validate:
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Clean stale artifacts
-        run: rm -rf node_modules ui/node_modules dist
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

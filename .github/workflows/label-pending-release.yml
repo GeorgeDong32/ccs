@@ -1,9 +1,7 @@
 name: Label Pending Release
 
 on:
-  pull_request:
-    types: [opened, reopened, edited, synchronize]
-    branches: [dev]
+  workflow_dispatch:
 
 jobs:
   label:

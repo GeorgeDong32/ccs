@@ -1,22 +1,6 @@
 name: Deploy CCS CloudFlare Worker
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'scripts/worker.js'
-      - 'scripts/wrangler.toml'
-      - 'installers/**'
-
-  # Only run on PRs that touch installer-related files
-  pull_request:
-    branches: [main]
-    paths:
-      - 'scripts/worker.js'
-      - 'scripts/wrangler.toml'
-      - 'installers/**'
-
-  # Allow manual trigger
   workflow_dispatch:
 
 jobs:

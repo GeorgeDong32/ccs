@@ -176,26 +176,20 @@ These rules apply when the task is issue triage, backlog cleanup, labels, commen
 
 Quality gates MUST pass before pushing. **Both projects have identical workflow.**
 
-### Pre-Commit Sequence (FOLLOW THIS ORDER)
+### Pre-Commit Sequence (SIMPLIFIED — FORK)
 
 ```bash
-# Main project (from repo root)
-bun run format              # Step 1: Fix formatting
-bun run lint:fix            # Step 2: Fix lint issues
-bun run validate            # Step 3: Full gate (typecheck + lint + format + maintainability + tests)
-bun run validate:ci-parity  # Step 4: CI parity gate (build + validate + base branch check)
+# Pre-commit hook runs format:check automatically (~1s)
+# Heavy checks (typecheck, lint) are deferred to CI
+
+# Before important pushes, run manually:
+bun run format              # Fix formatting
+bun run validate            # Full gate (typecheck + lint + format + tests)
 
 # UI project (if UI changed)
 cd ui
-bun run format              # Step 1: Fix formatting
-bun run lint:fix            # Step 2: Fix lint issues
-bun run validate            # Step 3: Final check (must pass)
+bun run format && bun run validate
 ```
-
-**WHY THIS ORDER:**
-- `validate` runs `format:check` which only VERIFIES—won't fix
-- If format:check fails, you skipped step 1
-- CI runs `validate` only (no auto-fix)—local must be clean
 
 ### What Validate Runs
 
@@ -431,51 +425,41 @@ git commit -m "added new feature"
 git commit -m "Fixed bug"
 ```
 
-## Branching Strategy
+## Branching Strategy (Fork)
 
-### Hierarchy
-```
-main (production) ← dev (integration) ← feat/* | fix/* | docs/*
-     ↑
-     └── hotfix/* (critical only, skips dev)
-```
+This is a personal fork. Solo developer workflow — no PR gates or dev branch promotion.
 
-### Standard Workflow
+### Upstream Sync Strategy
+
+- **`upstream` remote**: `git@github.com:kaitranntt/ccs.git` (original repo)
+- **`upstream-main` branch**: Local-only tracking branch mirroring upstream/main
+- **Sync method**: Cherry-pick individual commits from upstream onto main
+
 ```bash
-git checkout dev && git pull origin dev
-git checkout -b feat/my-feature
-# ... develop with conventional commits ...
-git push -u origin feat/my-feature
-gh pr create --base dev --title "feat(scope): description"
-# After testing in @dev:
-gh pr create --base main --title "feat(release): promote dev to main"
-```
+# Update tracking branch
+git fetch upstream
+git checkout upstream-main && git reset --hard upstream/main
 
-### Hotfix Workflow (Production Emergencies Only)
-```bash
-git checkout main && git pull origin main
-git checkout -b hotfix/critical-bug
-# ... fix ...
-gh pr create --base main --title "fix: critical issue"
-# Then sync: git checkout dev && git merge main && git push
+# Review new commits
+git log main..upstream-main --oneline --no-merges
+
+# Cherry-pick desired commits
+git checkout main
+git cherry-pick <commit-hash>
 ```
 
 ### Rules
-1. **NEVER** commit directly to `main` or `dev`
-2. Feature branches from `dev`, hotfixes from `main`
-3. dev→main PRs MUST use `feat:` or `fix:` (not `chore:`)
-4. Delete branches after merge
+1. Personal modifications go directly on `main`
+2. Cherry-pick from upstream selectively — do NOT merge upstream/main wholesale
+3. Keep conventional commit format for clean history
 
-## Automated Releases (DO NOT MANUALLY TAG)
+## Automated Releases (NOT APPLICABLE — PERSONAL FORK)
 
-**Releases are FULLY AUTOMATED via semantic-release. NEVER manually bump versions or create tags.**
-
-| Branch | npm Tag | When |
-|--------|---------|------|
-| `main` | `@latest` | Merge PR to main |
-| `dev` | `@dev` | Push to dev branch |
-
-**CI handles:** version bump, CHANGELOG.md, git tag, npm publish, GitHub release.
+**Semantic-release is disabled in this fork.** No npm publish, Docker, or Cloudflare deploys.
+- `release.yml`, `dev-release.yml`, `docker-release.yml`, `deploy-ccs-worker.yml` — all set to `workflow_dispatch` only
+- `ai-review.yml` — deleted
+- Only `ci.yml` is active (runs typecheck + lint + format + tests on PR)
+- Version bumps are manual if needed
 
 ## Development
 
@@ -498,15 +482,13 @@ rm -rf ~/.ccs             # Clean environment
 
 **IMPORTANT:** Use `bun run dev` at CCS root for always up-to-date code. Do NOT use `ccs config` during development as it uses the globally installed version.
 
-## Pre-Commit Checklist
+## Pre-Commit Checklist (Fork — Simplified)
 
 **Quality (BLOCKERS):**
 - [ ] `bun run format` — formatting fixed
-- [ ] `bun run validate` — all checks pass
-- [ ] `bun run validate:ci-parity` — CI parity passed (also enforced by pre-push hook)
+- [ ] `bun run validate` — run manually before important pushes (CI also validates)
 - [ ] `cd ui && bun run format && bun run validate` — if UI changed
-- [ ] If touching debt-sensitive code, run `bun run maintainability:check:strict` before opening/merging PR
-- [ ] If strict mode fails and increase is intentional: `bun run maintainability:baseline` and commit `docs/metrics/maintainability-baseline.json`
+- [ ] If touching debt-sensitive code, run `bun run maintainability:check:strict` before merge
 
 **Code:**
 - [ ] Conventional commit format (`feat:`, `fix:`, etc.)
@@ -537,6 +519,7 @@ rm -rf ~/.ccs             # Clean environment
 - config.yaml (PreferencesConfig section) via existing `/api/config` endpoin (003-cost-leverage-ratio)
 - TypeScript 5.9 (strict mode) + Express (backend), React 19.2 + Recharts 2.12 (frontend), React Query (data fetching) (005-cursor-usage-stats)
 - File-based disk cache (`~/.ccs/cache/cursor-usage.json`), following existing `disk-cache.ts` pattern (005-cursor-usage-stats)
+- TypeScript 5.3, Node.js 22+, Bun 1.3.9 + husky 9.x (hooks), GitHub Actions (CI), commitlin (006-fork-forkify-repo)
 
 ## Recent Changes
 - 001-dashboard-ui-polish: Added TypeScript 5.9 + React 19.2, Vite 7.2, Recharts 2.12, Tailwind CSS 4.1
