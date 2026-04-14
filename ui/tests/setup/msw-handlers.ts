@@ -224,7 +224,7 @@ export const handlers = [
             cacheCreation: { tokens: 5000, cost: 0.025 },
             cacheRead: { tokens: 10000, cost: 0.025 },
           },
-          ioRatio: 1.5,
+          ioRatio: 0.9,
         },
       ],
     });
