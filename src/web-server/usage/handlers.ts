@@ -49,6 +49,20 @@ const ANOMALY_THRESHOLDS = {
   HIGH_CACHE_READ_TOKENS: 1_000_000_000,
 };
 
+/**
+ * Compute effective I/O ratio including cache tokens.
+ * Cache Read and Cache Creation are both input-side operations.
+ */
+export function computeEffectiveIoRatio(
+  inputTokens: number,
+  cacheCreationTokens: number,
+  cacheReadTokens: number,
+  outputTokens: number
+): number {
+  if (outputTokens <= 0) return 0;
+  return (inputTokens + cacheCreationTokens + cacheReadTokens) / outputTokens;
+}
+
 // ============================================================================
 // Validation Helpers
 // ============================================================================
@@ -263,19 +277,22 @@ export function detectAnomalies(dailyData: DailyUsage[]): Anomaly[] {
         });
       }
 
-      if (breakdown.outputTokens > 0) {
-        const ioRatio = breakdown.inputTokens / breakdown.outputTokens;
-        if (ioRatio > ANOMALY_THRESHOLDS.HIGH_IO_RATIO) {
-          const multiplier = Math.round((ioRatio / ANOMALY_THRESHOLDS.HIGH_IO_RATIO) * 10) / 10;
-          anomalies.push({
-            date: day.date,
-            type: 'high_io_ratio',
-            model: breakdown.modelName,
-            value: ioRatio,
-            threshold: ANOMALY_THRESHOLDS.HIGH_IO_RATIO,
-            message: `I/O ratio ${multiplier}x above threshold (${Math.round(ioRatio)}:1)`,
-          });
-        }
+      const ioRatio = computeEffectiveIoRatio(
+        breakdown.inputTokens,
+        breakdown.cacheCreationTokens,
+        breakdown.cacheReadTokens,
+        breakdown.outputTokens
+      );
+      if (ioRatio > 0 && ioRatio > ANOMALY_THRESHOLDS.HIGH_IO_RATIO) {
+        const multiplier = Math.round((ioRatio / ANOMALY_THRESHOLDS.HIGH_IO_RATIO) * 10) / 10;
+        anomalies.push({
+          date: day.date,
+          type: 'high_io_ratio',
+          model: breakdown.modelName,
+          value: ioRatio,
+          threshold: ANOMALY_THRESHOLDS.HIGH_IO_RATIO,
+          message: `I/O ratio ${multiplier}x above threshold (${Math.round(ioRatio)}:1)`,
+        });
       }
 
       if (breakdown.cacheReadTokens > ANOMALY_THRESHOLDS.HIGH_CACHE_READ_TOKENS) {
@@ -493,7 +510,12 @@ export async function handleModels(
         const cacheCreationCost =
           (m.cacheCreationTokens / 1_000_000) * pricing.cacheCreationPerMillion;
         const cacheReadCost = (m.cacheReadTokens / 1_000_000) * pricing.cacheReadPerMillion;
-        const ioRatio = m.outputTokens > 0 ? m.inputTokens / m.outputTokens : 0;
+        const ioRatio = computeEffectiveIoRatio(
+          m.inputTokens,
+          m.cacheCreationTokens,
+          m.cacheReadTokens,
+          m.outputTokens
+        );
 
         return {
           model: m.model,
