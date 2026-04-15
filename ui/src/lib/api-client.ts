@@ -1222,4 +1222,18 @@ export const api = {
     getGemini: (accountId: string) =>
       request<GeminiCliQuotaResult>(`/cliproxy/quota/gemini/${encodeURIComponent(accountId)}`),
   },
+  /** Overview API for dashboard summary */
+  overview: {
+    /** Get overview data including version */
+    get: () =>
+      request<{
+        version: string;
+        profiles: number;
+        cliproxy: number;
+        cliproxyVariants: number;
+        cliproxyProviders: number;
+        accounts: number;
+        health: { status: string; passed: number; total: number };
+      }>('/overview'),
+  },
 };
