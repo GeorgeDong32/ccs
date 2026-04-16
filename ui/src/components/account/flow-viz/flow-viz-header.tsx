@@ -4,7 +4,7 @@
 
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { ChevronRight, Eye, EyeOff, RotateCcw } from 'lucide-react';
+import { ChevronRight, Eye, EyeOff, ListFilter, RotateCcw } from 'lucide-react';
 
 interface FlowVizHeaderProps {
   onBack?: () => void;
@@ -12,6 +12,9 @@ interface FlowVizHeaderProps {
   onToggleDetails: () => void;
   hasCustomPositions: boolean;
   onResetPositions: () => void;
+  pausedAccountsCount: number;
+  showPausedAccounts: boolean;
+  onTogglePausedAccounts: () => void;
 }
 
 export function FlowVizHeader({
@@ -20,6 +23,9 @@ export function FlowVizHeader({
   onToggleDetails,
   hasCustomPositions,
   onResetPositions,
+  pausedAccountsCount,
+  showPausedAccounts,
+  onTogglePausedAccounts,
 }: FlowVizHeaderProps) {
   const { t } = useTranslation();
   return (
