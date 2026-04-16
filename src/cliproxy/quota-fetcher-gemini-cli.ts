@@ -795,10 +795,9 @@ export async function fetchGeminiCliQuota(
   const expiresAt = getTokenExpiryTimestamp(authData.expiresAt);
   const shouldRefresh =
     authData.isExpired || expiresAt === null || expiresAt - Date.now() < REFRESH_LEAD_TIME_MS;
-  let attemptedRefresh = false;
+  let refreshedBeforeQuotaFetch = false;
 
   if (shouldRefresh) {
-    attemptedRefresh = true;
     if (verbose)
       console.error(
         authData.isExpired
@@ -808,6 +807,7 @@ export async function fetchGeminiCliQuota(
     const refreshResult = await refreshGeminiToken(accountId);
 
     if (refreshResult.success) {
+      refreshedBeforeQuotaFetch = true;
       if (verbose) console.error('[i] Token refreshed successfully');
       // Re-read auth data after successful refresh
       const refreshedAuthData = readGeminiCliAuthData(accountId);
@@ -834,7 +834,7 @@ export async function fetchGeminiCliQuota(
   const result = await fetchWithAuthData(authData, accountId, verbose);
 
   // Retry once with an account-scoped refresh when the quota endpoint rejects auth.
-  if (result.needsReauth && !attemptedRefresh) {
+  if (result.needsReauth && !refreshedBeforeQuotaFetch) {
     if (verbose) console.error('[i] Got 401, attempting refresh and retry...');
     const refreshResult = await refreshGeminiToken(accountId);
     if (refreshResult.success) {
