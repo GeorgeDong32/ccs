@@ -11,6 +11,7 @@ import {
   ROOT_COMMAND_FLAGS,
   ROOT_HELP_TOPICS,
   TOKENS_FLAGS,
+  PROXY_SUBCOMMANDS,
   PROVIDER_FLAGS,
   uniqueStrings,
   getPublicRootCommandTokens,
@@ -157,6 +158,12 @@ function getSuggestionsForCommand(tokensBeforeCurrent: string[]): CompletionSugg
           '--help',
           '-h',
         ]);
+      if (subcommand === 'routing') {
+        if (lastToken === 'set') {
+          return completeSubcommands(['round-robin', 'fill-first']);
+        }
+        return completeSubcommands(['set', 'explain']);
+      }
       if (['remove', 'edit'].includes(subcommand)) {
         return completeSubcommands(getProfileNames('cliproxyVariants'), ['--yes', '-y']);
       }
@@ -183,6 +190,13 @@ function getSuggestionsForCommand(tokensBeforeCurrent: string[]): CompletionSugg
       return completeSubcommands([], COMMAND_FLAG_SUGGESTIONS.docker);
     case 'cursor':
       return completeSubcommands(CURSOR_COMPLETION_SUBCOMMANDS);
+    case 'proxy':
+      if (lastToken === '--shell')
+        return completeSubcommands(['auto', 'bash', 'zsh', 'fish', 'powershell']);
+      return completeSubcommands(
+        [...PROXY_SUBCOMMANDS],
+        ['--port', '--shell', '--insecure', '--help', '-h']
+      );
     case 'copilot':
       return completeSubcommands(COPILOT_COMPLETION_SUBCOMMANDS);
     case 'env':
@@ -220,7 +234,15 @@ function getSuggestionsForCommand(tokensBeforeCurrent: string[]): CompletionSugg
         if (command === 'kiro') {
           return completeSubcommands(
             [],
-            [...PROVIDER_FLAGS, '--kiro-auth-method', '--import', '--incognito']
+            [
+              ...PROVIDER_FLAGS,
+              '--kiro-auth-method',
+              '--kiro-idc-start-url',
+              '--kiro-idc-region',
+              '--kiro-idc-flow',
+              '--import',
+              '--incognito',
+            ]
           );
         }
         return completeSubcommands([], PROVIDER_FLAGS);

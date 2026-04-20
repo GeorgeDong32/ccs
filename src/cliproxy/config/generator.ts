@@ -8,6 +8,7 @@ import * as path from 'path';
 import type { CLIProxyProvider, ProviderConfig } from '../types';
 import { getProviderDisplayName } from '../provider-capabilities';
 import { getModelMappingFromConfig } from '../base-config-loader';
+import { AI_PROVIDER_FAMILY_IDS } from '../ai-providers/types';
 import { loadOrCreateUnifiedConfig } from '../../config/unified-config-loader';
 import { getEffectiveApiKey, getEffectiveManagementSecret } from '../auth-token-manager';
 import { getDeniedModelIdReasonForProvider } from '../model-id-normalizer';
@@ -38,8 +39,19 @@ export const CCS_CONTROL_PANEL_SECRET = 'ccs';
  * v14: Added Gemini 3.1 Flash Antigravity aliases for upcoming rollout compatibility
  * v15: Prune stale generated Antigravity Gemini preview aliases during regeneration
  * v16: Narrow stale Gemini alias cleanup to broad multi-version guessed ranges
+ * v17: Persist routing.strategy from CCS unified config
  */
-export const CLIPROXY_CONFIG_VERSION = 16;
+export const CLIPROXY_CONFIG_VERSION = 17;
+
+interface RegenerateConfigOptions {
+  configPath?: string;
+  authDir?: string;
+}
+
+interface PreservedYamlSection {
+  key: string;
+  body: string;
+}
 
 interface OAuthModelAliasEntry {
   name: string;
@@ -113,6 +125,11 @@ function getLoggingSettings(): { loggingToFile: boolean; requestLog: boolean } {
     loggingToFile: config.cliproxy.logging?.enabled ?? false,
     requestLog: config.cliproxy.logging?.request_log ?? false,
   };
+}
+
+function getRoutingStrategy(): 'round-robin' | 'fill-first' {
+  const config = loadOrCreateUnifiedConfig();
+  return config.cliproxy?.routing?.strategy === 'fill-first' ? 'fill-first' : 'round-robin';
 }
 
 function sanitizeYamlScalar(rawValue: string): string {
@@ -534,6 +551,7 @@ function generateUnifiedConfigContent(
 
   // Get logging settings from user config (disabled by default)
   const { loggingToFile, requestLog } = getLoggingSettings();
+  const routingStrategy = getRoutingStrategy();
 
   // Get effective auth tokens (respects user customization)
   const effectiveApiKey = getEffectiveApiKey();
@@ -605,6 +623,10 @@ max-retry-interval: 0
 quota-exceeded:
   switch-project: true
   switch-preview-model: true
+
+# Credential selection strategy when multiple matching accounts are available
+routing:
+  strategy: ${routingStrategy}
 
 # =============================================================================
 # Authentication
@@ -728,14 +750,18 @@ function extractYamlSection(content: string, sectionKey: string): string {
  * @param port - Default port to use if not found in existing config
  * @returns Path to new config file
  */
-export function regenerateConfig(port: number = CLIPROXY_DEFAULT_PORT): string {
-  const configPath = getConfigPathForPort(port);
+export function regenerateConfig(
+  port: number = CLIPROXY_DEFAULT_PORT,
+  options?: RegenerateConfigOptions
+): string {
+  const configPath = options?.configPath ?? getConfigPathForPort(port);
+  const authDir = options?.authDir ?? getAuthDir();
 
   // Preserve user settings from existing config
   let effectivePort = port;
   let userApiKeys: string[] = [];
-  let claudeApiKeySection = '';
   let existingAliases = '';
+  const preservedSections: PreservedYamlSection[] = [];
 
   if (fs.existsSync(configPath)) {
     try {
@@ -750,8 +776,16 @@ export function regenerateConfig(port: number = CLIPROXY_DEFAULT_PORT): string {
       // Preserve user-added API keys (fix for issue #200)
       userApiKeys = parseUserApiKeys(content);
 
-      // Preserve claude-api-key section (managed via dashboard/API)
-      claudeApiKeySection = extractYamlSection(content, 'claude-api-key');
+      // Preserve AI provider sections managed outside the generated defaults.
+      for (const familyId of AI_PROVIDER_FAMILY_IDS) {
+        const sectionBody = extractYamlSection(content, familyId);
+        if (sectionBody) {
+          preservedSections.push({
+            key: familyId,
+            body: sectionBody,
+          });
+        }
+      }
 
       // Preserve user customizations while pruning legacy generated Gemini preview noise.
       const existingConfigVersion = getConfigVersionFromContent(content);
@@ -776,14 +810,14 @@ export function regenerateConfig(port: number = CLIPROXY_DEFAULT_PORT): string {
 
   // Ensure directories exist
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
-  fs.mkdirSync(getAuthDir(), { recursive: true, mode: 0o700 });
+  fs.mkdirSync(authDir, { recursive: true, mode: 0o700 });
 
   // Generate fresh config with preserved user API keys and aliases
   let configContent = generateUnifiedConfigContent(effectivePort, userApiKeys, existingAliases);
 
-  // Re-append claude-api-key section if it existed
-  if (claudeApiKeySection) {
-    configContent += `claude-api-key:\n${claudeApiKeySection}\n`;
+  // Re-append managed top-level sections that are not part of the generated defaults.
+  for (const section of preservedSections) {
+    configContent += `${section.key}:\n${section.body}\n`;
   }
 
   fs.writeFileSync(configPath, configContent, { mode: 0o600 });

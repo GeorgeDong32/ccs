@@ -1,14 +1,17 @@
 import { Shield, X } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
+import { useTranslation } from 'react-i18next';
 
 export function LocalhostDisclaimer() {
   const [dismissed, setDismissed] = useState(false);
-  const { authEnabled, isLocalAccess, loading } = useAuth();
-
-  if (dismissed || loading) return null;
+  const { authEnabled, authConfigured, isLocalAccess, loading } = useAuth();
+  const { t } = useTranslation();
 
   const isRemoteReadonly = !isLocalAccess && !authEnabled;
+
+  if ((dismissed && !isRemoteReadonly) || loading) return null;
+
   const wrapperClasses = isRemoteReadonly
     ? 'w-full border-t border-amber-200 bg-amber-50 px-4 py-2 text-amber-900 transition-colors duration-200 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200'
     : 'w-full border-t border-yellow-200 bg-yellow-50 px-4 py-2 text-yellow-800 transition-colors duration-200 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200';
@@ -17,19 +20,28 @@ export function LocalhostDisclaimer() {
     : 'text-yellow-600 hover:bg-yellow-100 hover:text-yellow-800 dark:text-yellow-400 dark:hover:bg-yellow-800/30';
   const message = isRemoteReadonly ? (
     <>
-      <span className="hidden sm:inline">
-        Remote dashboard access is read-only until you run ccs config auth setup on the host.
-      </span>
-      <span className="sm:hidden">
-        Remote dashboard is read-only until host auth is configured.
-      </span>
+      {authConfigured ? (
+        <>
+          <span className="hidden sm:inline">
+            {t('localhostDisclaimer.remoteReadonlyAuthDisabledLong')}
+          </span>
+          <span className="sm:hidden">
+            {t('localhostDisclaimer.remoteReadonlyAuthDisabledShort')}
+          </span>
+        </>
+      ) : (
+        <>
+          <span className="hidden sm:inline">
+            {t('localhostDisclaimer.remoteReadonlySetupLong')}
+          </span>
+          <span className="sm:hidden">{t('localhostDisclaimer.remoteReadonlySetupShort')}</span>
+        </>
+      )}
     </>
   ) : (
     <>
-      <span className="hidden sm:inline">
-        This dashboard runs locally. All data stays on your machine.
-      </span>
-      <span className="sm:hidden">Local dashboard - data stays on your device.</span>
+      <span className="hidden sm:inline">{t('localhostDisclaimer.localLong')}</span>
+      <span className="sm:hidden">{t('localhostDisclaimer.localShort')}</span>
     </>
   );
 
@@ -40,13 +52,15 @@ export function LocalhostDisclaimer() {
           <Shield className="w-4 h-4 flex-shrink-0" />
           {message}
         </div>
-        <button
-          onClick={() => setDismissed(true)}
-          className={`flex-shrink-0 rounded p-1 transition-colors ${dismissClasses}`}
-          aria-label="Dismiss disclaimer"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        {!isRemoteReadonly ? (
+          <button
+            onClick={() => setDismissed(true)}
+            className={`flex-shrink-0 rounded p-1 transition-colors ${dismissClasses}`}
+            aria-label={t('localhostDisclaimer.dismiss')}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        ) : null}
       </div>
     </div>
   );

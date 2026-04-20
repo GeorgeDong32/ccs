@@ -17,7 +17,7 @@ import * as path from 'path';
 import { ProgressIndicator } from '../../utils/progress-indicator';
 import { ok, fail, info, warn } from '../../utils/ui';
 import { getCcsDir } from '../../utils/config-manager';
-import { escapeShellArg } from '../../utils/shell-executor';
+import { escapeShellArg, getWindowsEscapedCommandShell } from '../../utils/shell-executor';
 import { ensureCLIProxyBinary } from '../binary-manager';
 import {
   generateConfig,
@@ -63,9 +63,27 @@ import {
   syncImageAnalysisMcpToConfigDir,
   appendThirdPartyImageAnalysisToolArgs,
 } from '../../utils/image-analysis';
-import { loadOrCreateUnifiedConfig, getThinkingConfig } from '../../config/unified-config-loader';
+import {
+  appendBrowserToolArgs,
+  ensureBrowserMcpOrThrow,
+  getEffectiveClaudeBrowserAttachConfig,
+  resolveOptionalBrowserAttachRuntime,
+  syncBrowserMcpToConfigDir,
+} from '../../utils/browser';
+import {
+  getBrowserConfig,
+  loadOrCreateUnifiedConfig,
+  getThinkingConfig,
+} from '../../config/unified-config-loader';
 import { HttpsTunnelProxy } from '../https-tunnel-proxy';
-import { isKiroAuthMethod, KiroAuthMethod, normalizeKiroAuthMethod } from '../auth/auth-types';
+import {
+  isKiroAuthMethod,
+  isKiroIDCFlow,
+  KiroAuthMethod,
+  KiroIDCFlow,
+  normalizeKiroAuthMethod,
+  normalizeKiroIDCFlow,
+} from '../auth/auth-types';
 import { resolveProfileContinuityInheritance } from '../../auth/profile-continuity-inheritance';
 
 // Import modular components
@@ -109,6 +127,42 @@ const DEFAULT_CONFIG: ExecutorConfig = {
   verbose: false,
   pollInterval: 100,
 };
+
+export function readOptionValue(
+  args: string[],
+  flag: string
+): { present: boolean; value?: string; missingValue: boolean } {
+  const inlinePrefix = `${flag}=`;
+  const inlineArg = args.find((arg) => arg.startsWith(inlinePrefix));
+  if (inlineArg !== undefined) {
+    const value = inlineArg.slice(inlinePrefix.length).trim();
+    return {
+      present: true,
+      value: value.length > 0 ? value : undefined,
+      missingValue: value.length === 0,
+    };
+  }
+
+  const index = args.indexOf(flag);
+  if (index === -1) {
+    return { present: false, missingValue: false };
+  }
+
+  const next = args[index + 1];
+  if (!next || next.startsWith('-')) {
+    return { present: true, missingValue: true };
+  }
+
+  return { present: true, value: next.trim(), missingValue: false };
+}
+
+export function hasGitLabTokenLoginFlag(args: string[]): boolean {
+  return args.includes('--gitlab-token-login') || args.includes('--token-login');
+}
+
+function getGitLabTokenLoginFlagName(args: string[]): '--gitlab-token-login' | '--token-login' {
+  return args.includes('--gitlab-token-login') ? '--gitlab-token-login' : '--token-login';
+}
 
 /**
  * Execute Claude CLI with CLIProxy (main entry point)
@@ -210,6 +264,17 @@ export async function execClaudeWithCLIProxy(
   // Setup first-class CCS WebSearch runtime
   ensureWebSearchMcpOrThrow();
   const imageAnalysisMcpReady = ensureImageAnalysisMcpOrThrow();
+  const browserAttachConfig = getEffectiveClaudeBrowserAttachConfig(getBrowserConfig());
+  const browserAttachRuntime = browserAttachConfig.enabled
+    ? await resolveOptionalBrowserAttachRuntime(browserAttachConfig)
+    : undefined;
+  const browserRuntimeEnv = browserAttachRuntime?.runtimeEnv;
+  if (browserAttachRuntime?.warning) {
+    process.stderr.write(`${warn(browserAttachRuntime.warning)}\n`);
+  }
+  if (browserRuntimeEnv) {
+    ensureBrowserMcpOrThrow();
+  }
   displayWebSearchStatus();
 
   const providerConfig = getProviderConfig(provider);
@@ -275,7 +340,7 @@ export async function execClaudeWithCLIProxy(
     spinner.start();
 
     try {
-      binaryPath = await ensureCLIProxyBinary(verbose);
+      binaryPath = await ensureCLIProxyBinary(verbose, { skipAutoUpdate: true });
       spinner.succeed('CLIProxy binary ready');
     } catch (error) {
       spinner.fail('Failed to prepare CLIProxy');
@@ -307,6 +372,7 @@ export async function execClaudeWithCLIProxy(
   const addAccount = argsWithoutProxy.includes('--add');
   const showAccounts = argsWithoutProxy.includes('--accounts');
   const forceImport = argsWithoutProxy.includes('--import');
+  const gitlabTokenLogin = hasGitLabTokenLoginFlag(argsWithoutProxy);
   const acceptAgyRisk = hasAntigravityRiskAcceptanceFlag(argsWithoutProxy);
 
   const incognitoFlag = argsWithoutProxy.includes('--incognito');
@@ -339,27 +405,127 @@ export async function execClaudeWithCLIProxy(
 
   // Parse --kiro-auth-method flag
   let kiroAuthMethod: KiroAuthMethod | undefined;
-  const kiroMethodIdx = argsWithoutProxy.indexOf('--kiro-auth-method');
-  if (kiroMethodIdx !== -1) {
-    const rawMethod = argsWithoutProxy[kiroMethodIdx + 1];
-    if (!rawMethod || rawMethod.startsWith('-')) {
+  const kiroMethodValue = readOptionValue(argsWithoutProxy, '--kiro-auth-method');
+  if (kiroMethodValue.present) {
+    const rawMethod = kiroMethodValue.value;
+    if (kiroMethodValue.missingValue || !rawMethod) {
       console.error(fail('--kiro-auth-method requires a value'));
-      console.error('    Supported values: aws, aws-authcode, google, github');
+      console.error('    Supported values: aws, aws-authcode, google, github, idc');
       process.exitCode = 1;
       return;
     }
     const normalized = rawMethod.trim().toLowerCase();
     if (!isKiroAuthMethod(normalized)) {
       console.error(fail(`Invalid --kiro-auth-method value: ${rawMethod}`));
-      console.error('    Supported values: aws, aws-authcode, google, github');
+      console.error('    Supported values: aws, aws-authcode, google, github, idc');
       process.exitCode = 1;
       return;
     }
     kiroAuthMethod = normalizeKiroAuthMethod(normalized);
   }
 
+  let kiroIDCStartUrl: string | undefined;
+  const kiroIDCStartUrlValue = readOptionValue(argsWithoutProxy, '--kiro-idc-start-url');
+  if (kiroIDCStartUrlValue.present && kiroIDCStartUrlValue.value) {
+    kiroIDCStartUrl = kiroIDCStartUrlValue.value;
+  } else if (kiroIDCStartUrlValue.present) {
+    console.error(fail('--kiro-idc-start-url requires a value'));
+    process.exitCode = 1;
+    return;
+  }
+
+  let kiroIDCRegion: string | undefined;
+  const kiroIDCRegionValue = readOptionValue(argsWithoutProxy, '--kiro-idc-region');
+  if (kiroIDCRegionValue.present && kiroIDCRegionValue.value) {
+    kiroIDCRegion = kiroIDCRegionValue.value;
+  } else if (kiroIDCRegionValue.present) {
+    console.error(fail('--kiro-idc-region requires a value'));
+    process.exitCode = 1;
+    return;
+  }
+
+  let kiroIDCFlow: KiroIDCFlow | undefined;
+  const kiroIDCFlowValue = readOptionValue(argsWithoutProxy, '--kiro-idc-flow');
+  if (kiroIDCFlowValue.present) {
+    const rawFlow = kiroIDCFlowValue.value;
+    if (kiroIDCFlowValue.missingValue || !rawFlow) {
+      console.error(fail('--kiro-idc-flow requires a value'));
+      console.error('    Supported values: authcode, device');
+      process.exitCode = 1;
+      return;
+    }
+    const normalized = rawFlow.trim().toLowerCase();
+    if (!isKiroIDCFlow(normalized)) {
+      console.error(fail(`Invalid --kiro-idc-flow value: ${rawFlow}`));
+      console.error('    Supported values: authcode, device');
+      process.exitCode = 1;
+      return;
+    }
+    kiroIDCFlow = normalizeKiroIDCFlow(normalized);
+  }
+
+  let gitlabBaseUrl: string | undefined;
+  const gitlabBaseUrlValue = readOptionValue(argsWithoutProxy, '--gitlab-url');
+  if (gitlabBaseUrlValue.present && gitlabBaseUrlValue.value) {
+    gitlabBaseUrl = gitlabBaseUrlValue.value.trim();
+  } else if (gitlabBaseUrlValue.present) {
+    console.error(fail('--gitlab-url requires a value'));
+    process.exitCode = 1;
+    return;
+  }
+
   if (kiroAuthMethod && provider !== 'kiro' && !compositeProviders.includes('kiro')) {
     console.error(fail('--kiro-auth-method is only valid for ccs kiro'));
+    process.exitCode = 1;
+    return;
+  }
+
+  if (
+    (kiroIDCStartUrl || kiroIDCRegion || kiroIDCFlow) &&
+    provider !== 'kiro' &&
+    !compositeProviders.includes('kiro')
+  ) {
+    console.error(
+      fail(
+        '--kiro-idc-start-url, --kiro-idc-region, and --kiro-idc-flow are only valid for ccs kiro'
+      )
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  if (!kiroAuthMethod && (kiroIDCStartUrl || kiroIDCRegion || kiroIDCFlow)) {
+    kiroAuthMethod = 'idc';
+  }
+
+  if (kiroAuthMethod === 'idc' && !kiroIDCStartUrl) {
+    console.error(fail('Kiro IDC login requires --kiro-idc-start-url'));
+    console.error(
+      '    Example: ccs kiro --auth --kiro-auth-method idc --kiro-idc-start-url https://d-xxx.awsapps.com/start'
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  if (
+    kiroAuthMethod &&
+    kiroAuthMethod !== 'idc' &&
+    (kiroIDCStartUrl || kiroIDCRegion || kiroIDCFlow)
+  ) {
+    console.error(
+      fail(
+        '--kiro-idc-start-url, --kiro-idc-region, and --kiro-idc-flow require --kiro-auth-method idc'
+      )
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  if ((gitlabTokenLogin || gitlabBaseUrl) && provider !== 'gitlab') {
+    const flagName = gitlabTokenLogin
+      ? getGitLabTokenLoginFlagName(argsWithoutProxy)
+      : '--gitlab-url';
+    console.error(fail(`${flagName} is only valid for ccs gitlab`));
     process.exitCode = 1;
     return;
   }
@@ -533,6 +699,9 @@ export async function execClaudeWithCLIProxy(
       verbose,
       import: true,
       ...(kiroAuthMethod ? { kiroMethod: kiroAuthMethod } : {}),
+      ...(kiroIDCStartUrl ? { kiroIDCStartUrl } : {}),
+      ...(kiroIDCRegion ? { kiroIDCRegion } : {}),
+      ...(kiroIDCFlow ? { kiroIDCFlow } : {}),
       ...(setNickname ? { nickname: setNickname } : {}),
     });
     if (!authSuccess) {
@@ -597,6 +766,11 @@ export async function execClaudeWithCLIProxy(
             add: addAccount,
             ...(acceptAgyRisk ? { acceptAgyRisk: true } : {}),
             ...(kiroAuthMethod && p === 'kiro' ? { kiroMethod: kiroAuthMethod } : {}),
+            ...(kiroIDCStartUrl && p === 'kiro' ? { kiroIDCStartUrl } : {}),
+            ...(kiroIDCRegion && p === 'kiro' ? { kiroIDCRegion } : {}),
+            ...(kiroIDCFlow && p === 'kiro' ? { kiroIDCFlow } : {}),
+            ...(gitlabTokenLogin && p === 'gitlab' ? { gitlabAuthMode: 'pat' as const } : {}),
+            ...(gitlabBaseUrl && p === 'gitlab' ? { gitlabBaseUrl } : {}),
             ...(forceHeadless ? { headless: true } : {}),
             ...(setNickname ? { nickname: setNickname } : {}),
             ...(noIncognito ? { noIncognito: true } : {}),
@@ -639,6 +813,11 @@ export async function execClaudeWithCLIProxy(
         add: addAccount,
         ...(acceptAgyRisk ? { acceptAgyRisk: true } : {}),
         ...(kiroAuthMethod ? { kiroMethod: kiroAuthMethod } : {}),
+        ...(kiroIDCStartUrl ? { kiroIDCStartUrl } : {}),
+        ...(kiroIDCRegion ? { kiroIDCRegion } : {}),
+        ...(kiroIDCFlow ? { kiroIDCFlow } : {}),
+        ...(gitlabTokenLogin ? { gitlabAuthMode: 'pat' as const } : {}),
+        ...(gitlabBaseUrl ? { gitlabBaseUrl } : {}),
         ...(forceHeadless ? { headless: true } : {}),
         ...(setNickname ? { nickname: setNickname } : {}),
         ...(noIncognito ? { noIncognito: true } : {}),
@@ -758,7 +937,6 @@ export async function execClaudeWithCLIProxy(
 
   if (provider === 'codex' && !cfg.isComposite && !skipLocalAuth) {
     await reconcileCodexModelForActivePlan({
-      settingsPath: cfg.customSettingsPath || getProviderSettingsPath(provider),
       currentModel: getCurrentModel(provider, cfg.customSettingsPath),
       verbose,
     });
@@ -854,15 +1032,12 @@ export async function execClaudeWithCLIProxy(
   });
   const imageAnalysisProvisioningFailed =
     !imageAnalysisMcpReady && imageAnalysisResolution.env.CCS_IMAGE_ANALYSIS_ENABLED === '1';
-  const imageAnalysisEnv = imageAnalysisProvisioningFailed
-    ? {
-        ...imageAnalysisResolution.env,
-        CCS_CURRENT_PROVIDER: '',
-        CCS_IMAGE_ANALYSIS_SKIP: '1',
-      }
-    : imageAnalysisResolution.env;
+  const imageAnalysisEnv = {
+    ...imageAnalysisResolution.env,
+    CCS_IMAGE_ANALYSIS_SKIP_HOOK: imageAnalysisMcpReady ? '1' : '0',
+  };
   const imageAnalysisWarning = imageAnalysisProvisioningFailed
-    ? 'ImageAnalysis MCP provisioning failed. This session will use native Read.'
+    ? 'ImageAnalysis MCP provisioning failed. This session will use compatibility fallback when available.'
     : imageAnalysisResolution.warning;
 
   // 9. Setup tool sanitization proxy
@@ -885,6 +1060,15 @@ export async function execClaudeWithCLIProxy(
   }
 
   syncImageAnalysisMcpToConfigDir(inheritedClaudeConfigDir);
+  if (
+    browserRuntimeEnv &&
+    inheritedClaudeConfigDir &&
+    !syncBrowserMcpToConfigDir(inheritedClaudeConfigDir)
+  ) {
+    throw new Error(
+      'Browser MCP is enabled, but CCS could not sync the browser MCP config into the inherited Claude instance.'
+    );
+  }
 
   // Build initial env vars to get ANTHROPIC_BASE_URL
   const initialEnvVars = buildClaudeEnvironment({
@@ -1007,6 +1191,7 @@ export async function execClaudeWithCLIProxy(
     compositeDefaultTier: cfg.compositeDefaultTier,
     claudeConfigDir: inheritedClaudeConfigDir,
     imageAnalysisEnv,
+    browserRuntimeEnv,
   });
 
   if (cfg.isComposite && cfg.compositeTiers && cfg.compositeDefaultTier) {
@@ -1022,6 +1207,14 @@ export async function execClaudeWithCLIProxy(
   }
 
   const webSearchEnv = getWebSearchHookEnv();
+  if (process.env.CCS_DEBUG) {
+    console.error(
+      `[cliproxy-browser-debug] keys=${Object.keys(env)
+        .filter((key) => key.startsWith('CCS_BROWSER_'))
+        .sort()
+        .join(',')} ws=${env.CCS_BROWSER_DEVTOOLS_WS_URL || ''}`
+    );
+  }
   logEnvironment(env, webSearchEnv, verbose);
   if (imageAnalysisWarning) {
     console.error(info(imageAnalysisWarning));
@@ -1052,6 +1245,9 @@ export async function execClaudeWithCLIProxy(
     '--use',
     '--nickname',
     '--kiro-auth-method',
+    '--kiro-idc-start-url',
+    '--kiro-idc-region',
+    '--kiro-idc-flow',
     '--thinking',
     '--effort',
     '--1m',
@@ -1066,6 +1262,10 @@ export async function execClaudeWithCLIProxy(
   ];
   const claudeArgs = argsWithoutProxy.filter((arg, idx) => {
     if (ccsFlags.includes(arg)) return false;
+    if (arg.startsWith('--kiro-auth-method=')) return false;
+    if (arg.startsWith('--kiro-idc-start-url=')) return false;
+    if (arg.startsWith('--kiro-idc-region=')) return false;
+    if (arg.startsWith('--kiro-idc-flow=')) return false;
     if (arg.startsWith('--thinking=')) return false;
     if (arg.startsWith('--effort=')) return false;
     if (arg.startsWith('--1m=') || arg.startsWith('--no-1m=')) return false;
@@ -1073,6 +1273,9 @@ export async function execClaudeWithCLIProxy(
       argsWithoutProxy[idx - 1] === '--use' ||
       argsWithoutProxy[idx - 1] === '--nickname' ||
       argsWithoutProxy[idx - 1] === '--kiro-auth-method' ||
+      argsWithoutProxy[idx - 1] === '--kiro-idc-start-url' ||
+      argsWithoutProxy[idx - 1] === '--kiro-idc-region' ||
+      argsWithoutProxy[idx - 1] === '--kiro-idc-flow' ||
       argsWithoutProxy[idx - 1] === '--thinking' ||
       argsWithoutProxy[idx - 1] === '--effort'
     )
@@ -1091,10 +1294,13 @@ export async function execClaudeWithCLIProxy(
   const imageAnalysisArgs = imageAnalysisMcpReady
     ? appendThirdPartyImageAnalysisToolArgs(claudeArgs)
     : claudeArgs;
+  const browserArgs = browserRuntimeEnv
+    ? appendBrowserToolArgs(imageAnalysisArgs)
+    : imageAnalysisArgs;
   const launchArgs = [
     '--settings',
     settingsPath,
-    ...appendThirdPartyWebSearchToolArgs(imageAnalysisArgs),
+    ...appendThirdPartyWebSearchToolArgs(browserArgs),
   ];
   const traceEnv = createWebSearchTraceContext({
     launcher: 'cliproxy.executor',
@@ -1110,7 +1316,7 @@ export async function execClaudeWithCLIProxy(
     claude = spawn(cmdString, {
       stdio: 'inherit',
       windowsHide: true,
-      shell: true,
+      shell: getWindowsEscapedCommandShell(),
       env: tracedEnv,
     });
   } else {

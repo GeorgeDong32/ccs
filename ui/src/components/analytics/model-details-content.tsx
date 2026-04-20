@@ -1,9 +1,9 @@
 import { Badge } from '@/components/ui/badge';
-import { useTranslation } from 'react-i18next';
 import { ArrowDownRight, ArrowUpRight, Database, Gauge, Sparkles } from 'lucide-react';
 import type { ModelUsage } from '@/hooks/use-usage';
 import { usePrivacy, PRIVACY_BLUR_CLASS } from '@/contexts/privacy-context';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface ModelDetailsContentProps {
   model: ModelUsage;
@@ -12,7 +12,7 @@ interface ModelDetailsContentProps {
 export function ModelDetailsContent({ model }: ModelDetailsContentProps) {
   const { privacyMode } = usePrivacy();
   const { t } = useTranslation();
-  const ioRatioStatus = getIoRatioStatus(model.ioRatio, t);
+  const ioRatioStatus = getIoRatioStatus(model.ioRatio);
 
   return (
     <div className="space-y-4">
@@ -26,10 +26,10 @@ export function ModelDetailsContent({ model }: ModelDetailsContentProps) {
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
-            {t('analyticsModelDetail.percentUsage', { percent: model.percentage.toFixed(1) })}
+            {model.percentage.toFixed(1)}% usage
           </Badge>
           <Badge variant={ioRatioStatus.variant} className="text-[10px] h-5 px-1.5">
-            {t('analyticsModelDetail.ioRatio', { ratio: model.ioRatio.toFixed(0) })}
+            {model.ioRatio.toFixed(0)}:1 I/O
           </Badge>
         </div>
       </div>
@@ -41,7 +41,7 @@ export function ModelDetailsContent({ model }: ModelDetailsContentProps) {
             ${model.cost.toFixed(2)}
           </p>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-            {t('analyticsModelDetail.totalCost')}
+            {t('analyticsCards.totalCost')}
           </p>
         </div>
         <div className="p-2 rounded-md bg-muted/50 border text-center">
@@ -49,7 +49,7 @@ export function ModelDetailsContent({ model }: ModelDetailsContentProps) {
             {formatCompactNumber(model.tokens)}
           </p>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-            {t('analyticsModelDetail.totalTokens')}
+            {t('analyticsCards.totalTokens')}
           </p>
         </div>
       </div>
@@ -57,32 +57,34 @@ export function ModelDetailsContent({ model }: ModelDetailsContentProps) {
       {/* Token Breakdown */}
       <div className="space-y-2">
         <h5 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-          {t('analyticsModelDetail.tokenBreakdown')}
+          {/* TODO i18n: missing key for "Token Breakdown" */}
+          Token Breakdown
         </h5>
         <div className={cn('space-y-1', privacyMode && PRIVACY_BLUR_CLASS)}>
+          {/* TODO i18n: missing keys for Input/Output/Cache Write/Cache Read labels */}
           <TokenRow
-            label={t('analyticsToken.input')}
+            label="Input"
             tokens={model.inputTokens}
             cost={model.costBreakdown.input.cost}
             color="#335c67"
             icon={ArrowDownRight}
           />
           <TokenRow
-            label={t('analyticsToken.output')}
+            label="Output"
             tokens={model.outputTokens}
             cost={model.costBreakdown.output.cost}
             color="#fff3b0"
             icon={ArrowUpRight}
           />
           <TokenRow
-            label={t('analyticsToken.cacheWrite')}
+            label="Cache Write"
             tokens={model.cacheCreationTokens}
             cost={model.costBreakdown.cacheCreation.cost}
             color="#e09f3e"
             icon={Database}
           />
           <TokenRow
-            label={t('analyticsToken.cacheRead')}
+            label="Cache Read"
             tokens={model.cacheReadTokens}
             cost={model.costBreakdown.cacheRead.cost}
             color="#9e2a2b"
@@ -95,7 +97,7 @@ export function ModelDetailsContent({ model }: ModelDetailsContentProps) {
       <div className="p-2.5 rounded-md border bg-muted/20 space-y-1.5">
         <div className="flex items-center gap-2">
           <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-xs font-medium">{t('analyticsModelDetail.ioRatioTitle')}</span>
+          <span className="text-xs font-medium">{t('analyticsCards.inputOutputRatio')}</span>
         </div>
         <p className="text-[11px] text-muted-foreground leading-snug">
           {ioRatioStatus.description}
@@ -133,34 +135,31 @@ function TokenRow({ label, tokens, cost, color, icon: Icon }: TokenRowProps) {
   );
 }
 
-function getIoRatioStatus(
-  ratio: number,
-  t: (key: string) => string
-): {
+function getIoRatioStatus(ratio: number): {
   variant: 'default' | 'secondary' | 'destructive' | 'outline';
   description: string;
 } {
   if (ratio >= 200) {
     return {
       variant: 'destructive',
-      description: t('analyticsModelDetail.ioDescHigh'),
+      description: 'Extended thinking or large context loading. Expected for reasoning models.',
     };
   }
   if (ratio >= 50) {
     return {
       variant: 'secondary',
-      description: t('analyticsModelDetail.ioDescMedHigh'),
+      description: 'More input than output. Typical for analysis tasks.',
     };
   }
   if (ratio >= 5) {
     return {
       variant: 'outline',
-      description: t('analyticsModelDetail.ioDescBalanced'),
+      description: 'Balanced input/output ratio for typical coding tasks.',
     };
   }
   return {
     variant: 'default',
-    description: t('analyticsModelDetail.ioDescHighOutput'),
+    description: 'More output than input. Generation-heavy workload.',
   };
 }
 

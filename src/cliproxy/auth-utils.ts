@@ -21,9 +21,18 @@ export function getTokenExpiryTimestamp(expiredValue?: string | number | null): 
     return null;
   }
 
+  const normalizeNumericTimestamp = (value: number): number | null => {
+    if (!Number.isFinite(value) || value <= 0) {
+      return null;
+    }
+
+    // Support Unix seconds from older token stores while preserving millisecond timestamps.
+    return value < 1_000_000_000_000 ? value * 1000 : value;
+  };
+
   try {
     if (typeof expiredValue === 'number') {
-      return Number.isFinite(expiredValue) ? expiredValue : null;
+      return normalizeNumericTimestamp(expiredValue);
     }
 
     const trimmed = expiredValue.trim();
@@ -33,7 +42,7 @@ export function getTokenExpiryTimestamp(expiredValue?: string | number | null): 
 
     if (/^\d+$/.test(trimmed)) {
       const numericTimestamp = Number(trimmed);
-      return Number.isFinite(numericTimestamp) ? numericTimestamp : null;
+      return normalizeNumericTimestamp(numericTimestamp);
     }
 
     const expiredDate = new Date(trimmed);

@@ -1,4 +1,5 @@
 import packageJson from '../../package.json';
+import type { CLIProxyProvider } from '../cliproxy';
 import { color, dim, header, initUI, subheader } from '../utils/ui';
 import {
   BUILTIN_PROVIDER_SHORTCUTS,
@@ -78,10 +79,149 @@ async function showProvidersHelp(writeLine: HelpWriter): Promise<void> {
       },
       { name: 'ccs api create --preset <id>', summary: 'Create an API-backed provider profile' },
       { name: 'ccs config', summary: 'Use the dashboard for provider and model setup' },
+      { name: 'ccs help kiro', summary: 'Kiro-specific auth methods and IDC flags' },
+    ],
+    writeLine
+  );
+  writeCommandTable(
+    'GitLab Duo Flags',
+    [
+      {
+        name: 'ccs gitlab --auth --gitlab-token-login',
+        summary: 'Authenticate with a GitLab Personal Access Token',
+      },
+      {
+        name: 'ccs gitlab --auth --token-login',
+        summary: 'Legacy alias for GitLab PAT login (still supported)',
+      },
+      {
+        name: 'ccs gitlab --auth --gitlab-url <url>',
+        summary: 'Use a self-hosted GitLab base URL during OAuth or PAT auth',
+      },
     ],
     writeLine
   );
   writeLine(`  ${dim('Deep help: ccs cliproxy --help | ccs api --help')}`);
+  writeLine('');
+}
+
+export async function showProviderShortcutHelp(
+  provider: CLIProxyProvider,
+  writeLine: HelpWriter = console.log
+): Promise<void> {
+  if (provider === 'kiro') {
+    await showKiroHelp(writeLine);
+    return;
+  }
+
+  await initUI();
+
+  const providerEntry = BUILTIN_PROVIDER_SHORTCUTS.find((entry) => entry.name === provider);
+  writeLine(header(`CCS ${provider} Shortcut Help`));
+  writeLine('');
+  writeLine(`  ${providerEntry?.summary || 'CLIProxy OAuth provider shortcut'}.`);
+  writeLine('');
+  writeCommandTable(
+    'Common Commands',
+    [
+      { name: `ccs ${provider} --auth`, summary: 'Authenticate the provider account via CLIProxy' },
+      { name: `ccs ${provider} --accounts`, summary: 'List or manage stored CLIProxy accounts' },
+      { name: `ccs ${provider} --config`, summary: 'Open the provider config flow' },
+      { name: `ccs ${provider} "task"`, summary: 'Run Claude through this provider shortcut' },
+    ],
+    writeLine
+  );
+
+  if (provider === 'gitlab') {
+    writeCommandTable(
+      'GitLab Duo Flags',
+      [
+        {
+          name: '--gitlab-token-login',
+          summary: 'Use a GitLab Personal Access Token instead of browser OAuth',
+        },
+        {
+          name: '--token-login',
+          summary: 'Legacy alias for `--gitlab-token-login`',
+        },
+        {
+          name: '--gitlab-url <url>',
+          summary: 'Target a self-hosted GitLab base URL',
+        },
+      ],
+      writeLine
+    );
+  }
+
+  writeLine(`  ${dim('See also: ccs help providers | ccs cliproxy --help')}`);
+  writeLine('');
+}
+
+async function showKiroHelp(writeLine: HelpWriter): Promise<void> {
+  await initUI();
+  writeLine(header('CCS Kiro Help'));
+  writeLine('');
+  writeLine('  Kiro supports Builder ID, IDC, and management-only social OAuth flows.');
+  writeLine('');
+  writeCommandTable(
+    'Authentication Methods',
+    [
+      { name: 'ccs kiro --auth', summary: 'Default AWS Builder ID device-code flow' },
+      {
+        name: 'ccs kiro --auth --kiro-auth-method aws-authcode',
+        summary: 'AWS Builder ID auth-code flow via local callback server',
+      },
+      {
+        name: 'ccs kiro --auth --kiro-auth-method idc',
+        summary: 'IAM Identity Center flow; requires IDC start URL',
+      },
+      {
+        name: 'ccs config',
+        summary: 'Dashboard flow for GitHub OAuth and account management',
+      },
+    ],
+    writeLine
+  );
+  writeCommandTable(
+    'Kiro Flags',
+    [
+      {
+        name: '--kiro-auth-method <aws|aws-authcode|google|github|idc>',
+        summary: 'Select the Kiro auth method',
+      },
+      { name: '--kiro-idc-start-url <url>', summary: 'Required IDC start URL when using `idc`' },
+      { name: '--kiro-idc-region <region>', summary: 'Optional IDC region override' },
+      { name: '--kiro-idc-flow <authcode|device>', summary: 'IDC flow type; defaults to authcode' },
+      {
+        name: '--paste-callback',
+        summary: 'Paste the final callback URL for callback-based CLI auth flows',
+      },
+      { name: '--import', summary: 'Import an existing Kiro IDE token instead of starting OAuth' },
+    ],
+    writeLine
+  );
+  writeCommandTable(
+    'Examples',
+    [
+      { name: 'ccs kiro --auth', summary: 'Start the default Builder ID device flow' },
+      {
+        name: 'ccs kiro --auth --kiro-auth-method aws-authcode --paste-callback',
+        summary: 'Use auth-code flow and paste the callback URL manually',
+      },
+      {
+        name: 'ccs kiro --auth --kiro-auth-method idc --kiro-idc-start-url https://d-xxx.awsapps.com/start',
+        summary: 'Start IDC auth with the default authcode flow',
+      },
+      {
+        name: 'ccs kiro --auth --kiro-auth-method idc --kiro-idc-start-url https://d-xxx.awsapps.com/start --kiro-idc-flow device',
+        summary: 'Use IDC device-code flow instead of authcode',
+      },
+    ],
+    writeLine
+  );
+  writeLine(
+    `  ${dim('GitHub OAuth is dashboard-only: ccs config -> Accounts -> Add Kiro account')}`
+  );
   writeLine('');
 }
 
@@ -109,7 +249,7 @@ export async function handleHelpCommand(writeLine: HelpWriter = console.log): Pr
 
   writeLine(header(`CCS CLI v${packageJson.version}`));
   writeLine('');
-  writeLine('  Claude profile switching, provider routing, and compatible runtime bridges.');
+  writeLine('  Claude profile switching, provider routing, runtime bridges, and browser tooling.');
   writeLine('');
 
   writeLine(subheader('Usage'));
@@ -139,10 +279,15 @@ export async function handleHelpCommand(writeLine: HelpWriter = console.log): Pr
     [
       { name: 'ccs help profiles', summary: getTopicSummary('profiles') },
       { name: 'ccs help providers', summary: getTopicSummary('providers') },
+      { name: 'ccs help browser', summary: getTopicSummary('browser') },
       { name: 'ccs help completion', summary: getTopicSummary('completion') },
       { name: 'ccs help targets', summary: getTopicSummary('targets') },
       { name: 'ccs api --help', summary: 'Deep help for API profile lifecycle commands' },
-      { name: 'ccs cliproxy --help', summary: 'Deep help for variants, quota, and lifecycle' },
+      {
+        name: 'ccs cliproxy --help',
+        summary: 'Deep help for variants, routing, quota, and lifecycle',
+      },
+      { name: 'ccs proxy --help', summary: 'Deep help for the OpenAI-compatible local proxy' },
       { name: 'ccs docker --help', summary: 'Deep help for Docker deployment commands' },
       { name: 'ccs cursor --help', summary: 'Deep help for Cursor runtime/admin commands' },
       { name: 'ccs copilot --help', summary: 'Deep help for GitHub Copilot commands' },
@@ -176,8 +321,16 @@ export async function handleHelpRoute(
     await showProvidersHelp(writeLine);
     return;
   }
+  if (topic === 'kiro') {
+    await showKiroHelp(writeLine);
+    return;
+  }
   if (topic === 'targets') {
     await showTargetsHelp(writeLine);
+    return;
+  }
+  if (topic === 'browser') {
+    await (await import('./browser-command')).showBrowserHelp(writeLine);
     return;
   }
   if (topic === 'completion') {
@@ -194,11 +347,13 @@ export async function handleHelpRoute(
       await new AuthCommands().showHelp();
     },
     cleanup: async () => (await import('./cleanup-command')).handleCleanupCommand(['--help']),
+    browser: async () => (await import('./browser-command')).showBrowserHelp(writeLine),
     cliproxy: async () => (await import('./cliproxy/help-subcommand')).showHelp(),
     copilot: async () =>
       process.exit(await (await import('./copilot-command')).handleCopilotCommand(['--help'])),
-    cursor: async () =>
-      process.exit(await (await import('./cursor-command')).handleCursorCommand(['--help'])),
+    cursor: async () => await showProviderShortcutHelp('cursor', writeLine),
+    proxy: async () =>
+      process.exit(await (await import('./proxy-command')).handleProxyCommand(['--help'])),
     docker: async () => (await import('./docker/help-subcommand')).showHelp(),
     migrate: async () => (await import('./migrate-command')).printMigrateHelp(),
     setup: async () => (await import('./setup-command')).handleSetupCommand(['--help']),

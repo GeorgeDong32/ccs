@@ -19,6 +19,7 @@ import {
 } from '../../cliproxy';
 import { regenerateConfig } from '../../cliproxy/config-generator';
 import { deduplicateCcsHooks } from '../../utils/websearch/hook-utils';
+import { removeCcsImageAnalyzerHooks } from '../../utils/hooks/image-analyzer-hook-utils';
 import { resolveCliproxyBridgeMetadata } from '../../api/services';
 import {
   getImageAnalysisConfig,
@@ -29,6 +30,7 @@ import { requireLocalAccessWhenAuthDisabled } from '../middleware/auth-middlewar
 import type { Settings } from '../../types/config';
 import type { CLIProxyProvider } from '../../cliproxy/types';
 import { mapExternalProviderName } from '../../cliproxy/provider-capabilities';
+import { resolveProviderSettingsPath } from '../../cliproxy/config/env-builder';
 import { expandPath } from '../../utils/helpers';
 import {
   canonicalizeModelIdForProvider,
@@ -99,6 +101,17 @@ function resolveSettingsPath(profileOrVariant: string): string {
 
   const ccsDir = getCcsDir();
   const resolvedCcsDir = path.resolve(ccsDir);
+
+  const directProvider = mapExternalProviderName(profileOrVariant);
+  if (directProvider) {
+    if (profileOrVariant !== directProvider) {
+      return resolvePathWithin(
+        resolvedCcsDir,
+        path.join(resolvedCcsDir, `${profileOrVariant}.settings.json`)
+      );
+    }
+    return path.resolve(resolveProviderSettingsPath(directProvider));
+  }
 
   // Check if this is a variant
   const variants = listVariants();
@@ -508,6 +521,7 @@ router.put('/:profile', (req: Request, res: Response): void => {
     // Deduplicate CCS hooks to prevent accumulation (fixes #450)
     // This handles cases where duplicate hooks were added by previous versions
     deduplicateCcsHooks(normalizedSettings as Record<string, unknown>);
+    removeCcsImageAnalyzerHooks(normalizedSettings as Record<string, unknown>);
 
     const ccsDir = getCcsDir();
 

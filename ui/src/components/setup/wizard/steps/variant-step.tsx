@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getAccountIdentityPresentation } from '@/lib/account-identity';
+import { getAccountIdentityPresentation, getCodexIdentityBadge } from '@/lib/account-identity';
 import {
   Select,
   SelectContent,
@@ -26,6 +26,7 @@ const CUSTOM_MODEL_VALUE = '__custom__';
 
 export function VariantStep({
   selectedProvider,
+  catalog,
   selectedAccount,
   variantName,
   modelName,
@@ -39,7 +40,8 @@ export function VariantStep({
 }: VariantStepProps) {
   const { t } = useTranslation();
   // Track if user selected custom model option
-  const catalogModels = MODEL_CATALOGS[selectedProvider]?.models || [];
+  const resolvedCatalog = catalog || MODEL_CATALOGS[selectedProvider];
+  const catalogModels = resolvedCatalog?.models || [];
   const isCustomModel = modelName && !catalogModels.some((m) => m.id === modelName);
   const [showCustomInput, setShowCustomInput] = useState(isCustomModel);
   const deniedCustomModel =
@@ -53,6 +55,10 @@ export function VariantStep({
         selectedAccount.tokenFile
       )
     : null;
+  const selectedCodexBadge =
+    selectedProvider === 'codex' && selectedAccountIdentity
+      ? getCodexIdentityBadge(selectedAccountIdentity)
+      : null;
 
   const handleModelSelect = (value: string) => {
     if (value === CUSTOM_MODEL_VALUE) {
@@ -78,20 +84,36 @@ export function VariantStep({
             </span>
             {(selectedAccountIdentity?.audienceLabel || selectedAccountIdentity?.detailLabel) && (
               <div className="flex items-center gap-1.5 flex-wrap">
-                {selectedAccountIdentity?.audienceLabel && (
+                {selectedCodexBadge?.label ? (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'text-[10px] h-4 px-1.5 border-transparent',
+                      selectedCodexBadge.audience === 'business'
+                        ? 'bg-sky-500/12 text-sky-700 dark:text-sky-300'
+                        : selectedCodexBadge.audience === 'free'
+                          ? 'bg-slate-200/70 text-slate-700 dark:bg-slate-700/40 dark:text-slate-200'
+                          : 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300'
+                    )}
+                  >
+                    {selectedCodexBadge.label}
+                  </Badge>
+                ) : selectedAccountIdentity?.audienceLabel ? (
                   <Badge
                     variant="outline"
                     className={cn(
                       'text-[10px] h-4 px-1.5 border-transparent',
                       selectedAccountIdentity.audience === 'business'
                         ? 'bg-sky-500/12 text-sky-700 dark:text-sky-300'
-                        : 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300'
+                        : selectedAccountIdentity.audience === 'free'
+                          ? 'bg-slate-200/70 text-slate-700 dark:bg-slate-700/40 dark:text-slate-200'
+                          : 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300'
                     )}
                   >
                     {selectedAccountIdentity.audienceLabel}
                   </Badge>
-                )}
-                {selectedAccountIdentity?.detailLabel && (
+                ) : null}
+                {!selectedCodexBadge?.label && selectedAccountIdentity?.detailLabel && (
                   <Badge variant="outline" className="text-[10px] h-4 px-1.5">
                     {selectedAccountIdentity.detailLabel}
                   </Badge>
@@ -125,9 +147,7 @@ export function VariantStep({
               placeholder={t('setupVariant.modelPlaceholder')}
             />
             {deniedCustomModel && (
-              <p className="text-xs text-destructive">
-                Antigravity denylist: Claude Opus 4.5 and Claude Sonnet 4.5 are deprecated.
-              </p>
+              <p className="text-xs text-destructive">{t('providerEditor.agyDenylist')}</p>
             )}
             <button
               type="button"
@@ -171,9 +191,7 @@ export function VariantStep({
           {showCustomInput
             ? t('setupVariant.enterAnyModel')
             : t('setupVariant.defaultModel', {
-                model:
-                  MODEL_CATALOGS[selectedProvider]?.defaultModel ||
-                  t('setupVariant.providerDefault'),
+                model: resolvedCatalog?.defaultModel || t('setupVariant.providerDefault'),
               })}
         </div>
       </div>

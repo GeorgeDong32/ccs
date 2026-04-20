@@ -6,7 +6,6 @@
  */
 
 import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Clock, Users, Zap, Terminal } from 'lucide-react';
@@ -15,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { usePrivacy, PRIVACY_BLUR_CLASS } from '@/contexts/privacy-context';
 import { getProjectDisplayName } from './project-name-utils';
+import { useTranslation } from 'react-i18next';
 
 interface SessionStatsCardProps {
   data: PaginatedSessions | undefined;
@@ -74,12 +74,13 @@ export function SessionStatsCard({ data, isLoading, className }: SessionStatsCar
         <CardHeader className="px-3 py-2">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Terminal className="w-4 h-4" />
-            {t('analyticsSession.title')}
+            {/* TODO i18n: missing key for "Session Stats" */}
+            Session Stats
           </CardTitle>
         </CardHeader>
         <CardContent className="px-3 pb-3 pt-0 flex-1 flex items-center justify-center">
           <p className="text-sm text-muted-foreground text-center">
-            {t('analyticsSession.emptyState')}
+            {t('analyticsCards.noSessionData')}
           </p>
         </CardContent>
       </Card>
@@ -93,7 +94,8 @@ export function SessionStatsCard({ data, isLoading, className }: SessionStatsCar
       <CardHeader className="px-3 py-2">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <Terminal className="w-4 h-4" />
-          {t('analyticsSession.title')}
+          {/* TODO i18n: missing key for "Session Stats" */}
+          Session Stats
         </CardTitle>
       </CardHeader>
       <CardContent className="px-3 pb-3 pt-0 flex-1 min-h-0 flex flex-col gap-3">
@@ -106,7 +108,8 @@ export function SessionStatsCard({ data, isLoading, className }: SessionStatsCar
               <span className="text-xl font-bold">{stats.totalSessions}</span>
             </div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
-              {t('analyticsSession.totalSessions')}
+              {/* TODO i18n: missing key for "Total Sessions" */}
+              Total Sessions
             </p>
           </div>
 
@@ -119,7 +122,8 @@ export function SessionStatsCard({ data, isLoading, className }: SessionStatsCar
               </span>
             </div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
-              {t('analyticsSession.avgCostPerSession')}
+              {/* TODO i18n: missing key for "Avg Cost/Session" */}
+              Avg Cost/Session
             </p>
           </div>
         </div>
@@ -128,7 +132,8 @@ export function SessionStatsCard({ data, isLoading, className }: SessionStatsCar
         <div className="flex-1 min-h-0 space-y-2">
           <div className="flex items-center gap-1 text-xs text-muted-foreground font-medium mb-1">
             <Clock className="w-3 h-3" />
-            {t('analyticsSession.recentActivity')}
+            {/* TODO i18n: missing key for "Recent Activity" */}
+            Recent Activity
           </div>
           <div className="space-y-1.5 max-h-full overflow-y-auto pr-1">
             {stats.recentSessions.map((session) => (

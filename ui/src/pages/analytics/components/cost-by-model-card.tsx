@@ -5,13 +5,13 @@
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useTranslation } from 'react-i18next';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DollarSign, ChevronRight } from 'lucide-react';
 import { getModelColor, cn } from '@/lib/utils';
 import { PRIVACY_BLUR_CLASS } from '@/contexts/privacy-context';
 import { formatTokens } from '../utils';
 import type { ModelUsage } from '@/hooks/use-usage';
+import { useTranslation } from 'react-i18next';
 
 interface CostByModelCardProps {
   models: ModelUsage[] | undefined;
@@ -27,12 +27,13 @@ export function CostByModelCard({
   privacyMode,
 }: CostByModelCardProps) {
   const { t } = useTranslation();
+
   return (
     <Card className="flex flex-col h-full min-h-0 overflow-hidden gap-0 py-0 shadow-sm lg:col-span-4">
       <CardHeader className="px-3 py-2">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <DollarSign className="w-4 h-4" />
-          {t('analyticsCostModel.title')}
+          {t('analyticsPages.costByModel')}
         </CardTitle>
       </CardHeader>
       <CardContent className="px-2 pb-2 pt-0 flex-1 min-h-0 overflow-y-auto">
@@ -47,7 +48,7 @@ export function CostByModelCard({
                   key={model.model}
                   className="group flex items-center text-xs w-full hover:bg-muted/50 rounded px-2 py-1.5 transition-colors cursor-pointer gap-3"
                   onClick={(e) => onModelClick(model, e)}
-                  title={t('analyticsCostModel.clickForDetails')}
+                  title="Click for details"
                 >
                   {/* Model name */}
                   <div className="flex items-center gap-2 min-w-0 w-[180px] shrink-0">
@@ -92,7 +93,6 @@ export function CostByModelCard({
 }
 
 function CostBreakdownBar({ model }: { model: ModelUsage }) {
-  const { t } = useTranslation();
   const colors = {
     input: '#335c67',
     output: '#fff3b0',
@@ -111,7 +111,7 @@ function CostBreakdownBar({ model }: { model: ModelUsage }) {
             backgroundColor: colors.input,
             width: `${getWidth(model.costBreakdown.input.cost)}%`,
           }}
-          title={`${t('analyticsToken.input')}: $${model.costBreakdown.input.cost.toFixed(2)}`}
+          title={`Input: $${model.costBreakdown.input.cost.toFixed(2)}`}
         />
         <div
           className="h-full"
@@ -119,7 +119,7 @@ function CostBreakdownBar({ model }: { model: ModelUsage }) {
             backgroundColor: colors.output,
             width: `${getWidth(model.costBreakdown.output.cost)}%`,
           }}
-          title={`${t('analyticsToken.output')}: $${model.costBreakdown.output.cost.toFixed(2)}`}
+          title={`Output: $${model.costBreakdown.output.cost.toFixed(2)}`}
         />
         <div
           className="h-full"
@@ -127,7 +127,7 @@ function CostBreakdownBar({ model }: { model: ModelUsage }) {
             backgroundColor: colors.cacheWrite,
             width: `${getWidth(model.costBreakdown.cacheCreation.cost)}%`,
           }}
-          title={`${t('analyticsToken.cacheWrite')}: $${model.costBreakdown.cacheCreation.cost.toFixed(2)}`}
+          title={`Cache Write: $${model.costBreakdown.cacheCreation.cost.toFixed(2)}`}
         />
         <div
           className="h-full"
@@ -135,7 +135,7 @@ function CostBreakdownBar({ model }: { model: ModelUsage }) {
             backgroundColor: colors.cacheRead,
             width: `${getWidth(model.costBreakdown.cacheRead.cost)}%`,
           }}
-          title={`${t('analyticsToken.cacheRead')}: $${model.costBreakdown.cacheRead.cost.toFixed(2)}`}
+          title={`Cache Read: $${model.costBreakdown.cacheRead.cost.toFixed(2)}`}
         />
       </div>
     </div>
@@ -143,12 +143,11 @@ function CostBreakdownBar({ model }: { model: ModelUsage }) {
 }
 
 function CostLegend() {
-  const { t } = useTranslation();
   const items = [
-    { color: '#335c67', label: t('analyticsToken.input') },
-    { color: '#fff3b0', label: t('analyticsToken.output'), hasBorder: true },
-    { color: '#e09f3e', label: t('analyticsToken.cacheWrite') },
-    { color: '#9e2a2b', label: t('analyticsToken.cacheRead') },
+    { color: '#335c67', label: 'Input' },
+    { color: '#fff3b0', label: 'Output', hasBorder: true },
+    { color: '#e09f3e', label: 'Cache Write' },
+    { color: '#9e2a2b', label: 'Cache Read' },
   ];
 
   return (

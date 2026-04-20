@@ -16,11 +16,11 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { useTranslation } from 'react-i18next';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { TokenBreakdown } from '@/hooks/use-usage';
 import { cn } from '@/lib/utils';
 import { usePrivacy, PRIVACY_BLUR_CLASS } from '@/contexts/privacy-context';
+import { useTranslation } from 'react-i18next';
 
 interface TokenBreakdownChartProps {
   data?: TokenBreakdown;
@@ -44,31 +44,31 @@ export function TokenBreakdownChart({ data, isLoading, className }: TokenBreakdo
 
     return [
       {
-        name: t('analyticsToken.input'),
+        name: 'Input',
         tokens: data.input.tokens,
         cost: data.input.cost,
         fill: COLORS.input,
       },
       {
-        name: t('analyticsToken.output'),
+        name: 'Output',
         tokens: data.output.tokens,
         cost: data.output.cost,
         fill: COLORS.output,
       },
       {
-        name: t('analyticsToken.cacheWrite'),
+        name: 'Cache Write',
         tokens: data.cacheCreation.tokens,
         cost: data.cacheCreation.cost,
         fill: COLORS.cacheCreation,
       },
       {
-        name: t('analyticsToken.cacheRead'),
+        name: 'Cache Read',
         tokens: data.cacheRead.tokens,
         cost: data.cacheRead.cost,
         fill: COLORS.cacheRead,
       },
     ];
-  }, [data, t]);
+  }, [data]);
 
   // Calculate totals for percentages
   const totals = useMemo(() => {
@@ -84,7 +84,7 @@ export function TokenBreakdownChart({ data, isLoading, className }: TokenBreakdo
   if (!data || chartData.every((d) => d.tokens === 0)) {
     return (
       <div className={cn('h-[250px] flex items-center justify-center', className)}>
-        <p className="text-muted-foreground">{t('analyticsToken.emptyState')}</p>
+        <p className="text-muted-foreground">{t('analyticsCards.noTokenData')}</p>
       </div>
     );
   }
@@ -136,10 +136,10 @@ export function TokenBreakdownChart({ data, isLoading, className }: TokenBreakdo
                 <div className="rounded-lg border bg-background p-3 shadow-lg">
                   <p className="font-medium mb-2">{item.name}</p>
                   <p className="text-sm">
-                    {t('analyticsToken.tokens')}: {formatNumber(item.tokens)} ({tokenPercent}%)
+                    Tokens: {formatNumber(item.tokens)} ({tokenPercent}%)
                   </p>
                   <p className="text-sm">
-                    {t('analyticsToken.cost')}: ${item.cost.toFixed(2)} ({costPercent}%)
+                    Cost: ${item.cost.toFixed(2)} ({costPercent}%)
                   </p>
                 </div>
               );
@@ -151,7 +151,7 @@ export function TokenBreakdownChart({ data, isLoading, className }: TokenBreakdo
             wrapperStyle={{ paddingTop: '10px' }}
           />
 
-          <Bar dataKey="tokens" name={t('analyticsToken.tokens')} radius={[0, 4, 4, 0]} />
+          <Bar dataKey="tokens" name="Tokens" radius={[0, 4, 4, 0]} />
         </BarChart>
       </ResponsiveContainer>
 

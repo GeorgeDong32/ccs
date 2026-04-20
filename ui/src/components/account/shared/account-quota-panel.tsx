@@ -144,7 +144,9 @@ export function AccountQuotaPanel({
     return (
       <div className={cn('flex items-center gap-1.5 text-xs text-muted-foreground', className)}>
         <Loader2 className="w-3 h-3 animate-spin" />
-        <span>{mode === 'compact' ? t('accountCard.quotaLoading') : 'Loading quota...'}</span>
+        <span>
+          {mode === 'compact' ? t('accountCard.quotaLoading') : t('accountQuotaPanel.loadingQuota')}
+        </span>
       </div>
     );
   }
@@ -204,20 +206,24 @@ export function AccountQuotaPanel({
                       <>
                         <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                         <span className="text-emerald-600 dark:text-emerald-400">
-                          Active · {formatRelativeTime(runtimeLastUsed)}
+                          {/* TODO i18n: missing key for "Active" */}Active ·{' '}
+                          {formatRelativeTime(runtimeLastUsed)}
                         </span>
                       </>
                     ) : runtimeLastUsed ? (
                       <>
                         <Clock className="w-3 h-3 text-muted-foreground" />
                         <span className="text-muted-foreground">
-                          Last used {formatRelativeTime(runtimeLastUsed)}
+                          {/* TODO i18n: missing key for "Last used" */}Last used{' '}
+                          {formatRelativeTime(runtimeLastUsed)}
                         </span>
                       </>
                     ) : (
                       <>
                         <HelpCircle className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-muted-foreground">Not used yet</span>
+                        <span className="text-muted-foreground">
+                          {t('accountCardStats.notUsedYet')}
+                        </span>
                       </>
                     )}
                   </div>
@@ -250,7 +256,7 @@ export function AccountQuotaPanel({
                 </div>
               )}
             </TooltipTrigger>
-            <TooltipContent side={mode === 'compact' ? 'top' : 'bottom'} className="max-w-sm">
+            <TooltipContent side={mode === 'compact' ? 'top' : 'bottom'} className="sm:max-w-sm">
               <QuotaTooltipContent quota={quota} resetTime={resetTime} />
             </TooltipContent>
           </Tooltip>
@@ -306,7 +312,7 @@ export function AccountQuotaPanel({
             </div>
           )}
         </TooltipTrigger>
-        <TooltipContent side={mode === 'compact' ? 'top' : 'bottom'} className="max-w-sm">
+        <TooltipContent side={mode === 'compact' ? 'top' : 'bottom'} className="sm:max-w-sm">
           <QuotaTooltipContent quota={quota} resetTime={resetTime} />
         </TooltipContent>
       </Tooltip>

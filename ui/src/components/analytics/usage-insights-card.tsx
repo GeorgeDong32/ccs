@@ -1,10 +1,10 @@
-import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CheckCircle2, Zap, Gauge, DollarSign, Database, Lightbulb } from 'lucide-react';
 import type { Anomaly, AnomalySummary, AnomalyType } from '@/hooks/use-usage';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface UsageInsightsCardProps {
   anomalies?: Anomaly[];
@@ -13,39 +13,38 @@ interface UsageInsightsCardProps {
   className?: string;
 }
 
-// Static config without translatable labels
 const ANOMALY_CONFIG: Record<
   AnomalyType,
   {
     icon: React.ComponentType<{ className?: string }>;
     color: string;
     bgColor: string;
-    labelKey: string;
+    label: string;
   }
 > = {
   high_input: {
     icon: Zap,
     color: 'text-amber-600 dark:text-amber-400',
     bgColor: 'bg-amber-100 dark:bg-amber-900/20',
-    labelKey: 'analyticsInsights.highInputVolume',
+    label: 'High Input Volume',
   },
   high_io_ratio: {
     icon: Gauge,
     color: 'text-orange-600 dark:text-orange-400',
     bgColor: 'bg-orange-100 dark:bg-orange-900/20',
-    labelKey: 'analyticsInsights.highIORatio',
+    label: 'High I/O Ratio',
   },
   cost_spike: {
     icon: DollarSign,
     color: 'text-red-600 dark:text-red-400',
     bgColor: 'bg-red-100 dark:bg-red-900/20',
-    labelKey: 'analyticsInsights.costSpike',
+    label: 'Cost Spike Detected',
   },
   high_cache_read: {
     icon: Database,
     color: 'text-cyan-600 dark:text-cyan-400',
     bgColor: 'bg-cyan-100 dark:bg-cyan-900/20',
-    labelKey: 'analyticsInsights.heavyCacheUsage',
+    label: 'Heavy Cache Usage',
   },
 };
 
@@ -95,10 +94,10 @@ export function UsageInsightsCard({
             <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
           </div>
           <h3 className="font-medium text-foreground text-sm">
-            {t('analyticsInsights.allNominal')}
+            {t('healthCard.allSystemsNominal')}
           </h3>
           <p className="text-xs mt-1.5 max-w-[200px] leading-relaxed">
-            {t('analyticsInsights.nominalDesc')}
+            Your usage patterns are within normal ranges for the selected period.
           </p>
         </div>
       </Card>
@@ -110,16 +109,15 @@ export function UsageInsightsCard({
       <div className="px-1 py-2 flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Lightbulb className="w-4 h-4 text-amber-500" />
-          <h3 className="font-semibold text-sm">{t('analyticsInsights.title')}</h3>
+          <h3 className="font-semibold text-sm">{t('analyticsCards.usageInsights')}</h3>
         </div>
         <Badge
           variant="outline"
           className="h-5 px-2 text-[10px] font-medium border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400"
         >
           {summary.totalAnomalies}{' '}
-          {summary.totalAnomalies === 1
-            ? t('analyticsInsights.alert')
-            : t('analyticsInsights.alerts')}
+          {/* TODO i18n: missing key for singular/plural "Alert"/"Alerts" */}{' '}
+          {summary.totalAnomalies === 1 ? 'Alert' : 'Alerts'}
         </Badge>
       </div>
 
@@ -146,7 +144,7 @@ export function UsageInsightsCard({
 
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="font-medium text-sm text-foreground/90">{t(config.labelKey)}</p>
+                      <p className="font-medium text-sm text-foreground/90">{config.label}</p>
                       <span className="text-[10px] text-muted-foreground tabular-nums opacity-60 group-hover:opacity-100 transition-opacity">
                         {anomaly.date}
                       </span>

@@ -5,10 +5,16 @@
 
 import type { ModelEntry, ProviderCatalog } from '@/components/cliproxy/provider-model-selector';
 import { stripModelConfigurationSuffixes } from '@/lib/extended-context-utils';
+import {
+  AGY_GEMINI_PRO_COMPATIBILITY_IDS,
+  AGY_GEMINI_PRO_HIGH_ID,
+  AGY_GEMINI_PRO_LOW_ID,
+} from '@shared/agy-gemini-pro-compatibility';
 import { GEMINI_MINOR_VERSION_COMPATIBILITY_IDS } from '@shared/gemini-minor-version-compatibility';
 
 const GEMINI_PREVIEW_MODEL_ID_PATTERN =
   /^gemini-(\d+(?:[.-]\d+)*)-(pro|flash)-preview(-customtools)?$/i;
+const MANAGED_MODEL_PREFIXES = ['agy/', 'gcli/'] as const;
 
 export type CatalogAvailableModel = {
   id: string;
@@ -27,6 +33,29 @@ type GeminiPreviewModelInfo = {
 
 function normalizeModelId(modelId: string): string {
   return stripModelConfigurationSuffixes(modelId).toLowerCase();
+}
+
+function stripManagedModelPrefix(modelId: string): string {
+  const trimmedModelId = modelId.trim();
+  const normalizedModelId = trimmedModelId.toLowerCase();
+
+  for (const prefix of MANAGED_MODEL_PREFIXES) {
+    if (normalizedModelId.startsWith(prefix)) {
+      return trimmedModelId.slice(prefix.length);
+    }
+  }
+
+  return trimmedModelId;
+}
+
+function stripCustomtoolsSuffix(modelId: string): string {
+  return modelId.replace(/-customtools$/i, '');
+}
+
+function getAgyGeminiProCompatibilityId(modelId: string): string | undefined {
+  return AGY_GEMINI_PRO_COMPATIBILITY_IDS[
+    normalizeModelId(modelId) as keyof typeof AGY_GEMINI_PRO_COMPATIBILITY_IDS
+  ];
 }
 
 function parseGeminiPreviewModelId(modelId: string): GeminiPreviewModelInfo | null {
@@ -110,6 +139,7 @@ function resolveGeminiPreviewModelId(
 }
 
 /** Model catalog data - mirrors src/cliproxy/model-catalog.ts */
+// TODO i18n: missing keys for MODEL_CATALOGS displayNames, model names, and descriptions
 export const MODEL_CATALOGS: Record<string, ProviderCatalog> = {
   agy: {
     provider: 'agy',
@@ -142,14 +172,26 @@ export const MODEL_CATALOGS: Record<string, ProviderCatalog> = {
         },
       },
       {
-        id: 'gemini-3.1-pro-preview',
-        name: 'Gemini Pro',
-        description: 'Resolves to the best advertised Gemini Pro preview via Antigravity',
+        id: AGY_GEMINI_PRO_HIGH_ID,
+        name: 'Gemini Pro High',
+        description: 'Current Antigravity Gemini Pro route with higher reasoning budget',
         extendedContext: true,
         presetMapping: {
-          default: 'gemini-3.1-pro-preview',
-          opus: 'gemini-3.1-pro-preview',
-          sonnet: 'gemini-3.1-pro-preview',
+          default: AGY_GEMINI_PRO_HIGH_ID,
+          opus: AGY_GEMINI_PRO_HIGH_ID,
+          sonnet: AGY_GEMINI_PRO_HIGH_ID,
+          haiku: 'gemini-3-1-flash-preview',
+        },
+      },
+      {
+        id: AGY_GEMINI_PRO_LOW_ID,
+        name: 'Gemini Pro Low',
+        description: 'Current Antigravity Gemini Pro route with the lighter quota tier',
+        extendedContext: true,
+        presetMapping: {
+          default: AGY_GEMINI_PRO_LOW_ID,
+          opus: AGY_GEMINI_PRO_LOW_ID,
+          sonnet: AGY_GEMINI_PRO_LOW_ID,
           haiku: 'gemini-3-1-flash-preview',
         },
       },
@@ -160,8 +202,8 @@ export const MODEL_CATALOGS: Record<string, ProviderCatalog> = {
         extendedContext: true,
         presetMapping: {
           default: 'gemini-3-1-flash-preview',
-          opus: 'gemini-3.1-pro-preview',
-          sonnet: 'gemini-3.1-pro-preview',
+          opus: AGY_GEMINI_PRO_HIGH_ID,
+          sonnet: AGY_GEMINI_PRO_HIGH_ID,
           haiku: 'gemini-3-1-flash-preview',
         },
       },
@@ -680,11 +722,17 @@ export const MODEL_CATALOGS: Record<string, ProviderCatalog> = {
   },
 };
 
-export function findCatalogModel(provider: string, modelId: string) {
-  const catalog = MODEL_CATALOGS[provider.toLowerCase()];
+function findCatalogModelInCatalog(catalog: ProviderCatalog | undefined, modelId: string) {
   if (!catalog) return undefined;
 
   const normalizedModelId = normalizeModelId(modelId);
+  if (catalog.provider === 'agy') {
+    const agyCompatibilityId = getAgyGeminiProCompatibilityId(normalizedModelId);
+    if (agyCompatibilityId) {
+      const compatibilityMatch = catalog.models.find((model) => model.id === agyCompatibilityId);
+      if (compatibilityMatch) return compatibilityMatch;
+    }
+  }
   const compatibilityModelId =
     GEMINI_MINOR_VERSION_COMPATIBILITY_IDS[
       normalizedModelId.toLowerCase() as keyof typeof GEMINI_MINOR_VERSION_COMPATIBILITY_IDS
@@ -709,6 +757,91 @@ export function findCatalogModel(provider: string, modelId: string) {
       } => Boolean(candidate.info && candidate.info.family === geminiModelInfo.family)
     )
     .sort((left, right) => compareGeminiVersions(right.info.version, left.info.version))[0]?.model;
+}
+
+function normalizeCatalogTier(tier: unknown): ModelEntry['tier'] {
+  if (tier === 'free') return 'free';
+  if (typeof tier === 'string' && tier.trim().length > 0) return 'paid';
+  return undefined;
+}
+
+export function buildUiCatalog(
+  provider: string,
+  liveCatalog: ProviderCatalog | undefined
+): ProviderCatalog | undefined {
+  const staticCatalog = MODEL_CATALOGS[provider.toLowerCase()];
+  if (!liveCatalog || liveCatalog.models.length === 0) {
+    return staticCatalog;
+  }
+
+  const availableModels = liveCatalog.models.map((model) => ({
+    id: model.id,
+    owned_by: liveCatalog.provider,
+  }));
+
+  const models = liveCatalog.models.map((model) => {
+    const staticModel = findCatalogModelInCatalog(staticCatalog, model.id);
+    return {
+      ...model,
+      name: model.name || staticModel?.name || model.id,
+      tier: staticModel?.tier ?? normalizeCatalogTier(model.tier),
+      description: model.description ?? staticModel?.description,
+      broken: staticModel?.broken,
+      issueUrl: staticModel?.issueUrl,
+      deprecated: staticModel?.deprecated,
+      deprecationReason: staticModel?.deprecationReason,
+      extendedContext: model.extendedContext ?? staticModel?.extendedContext,
+      presetMapping: staticModel?.presetMapping,
+    };
+  });
+
+  const fallbackDefaultModel = staticCatalog?.defaultModel
+    ? resolveCatalogModelId(staticCatalog.defaultModel, availableModels)
+    : undefined;
+  const hasFallbackDefaultModel =
+    typeof fallbackDefaultModel === 'string' &&
+    availableModels.some(
+      (model) => normalizeModelId(model.id) === normalizeModelId(fallbackDefaultModel)
+    );
+
+  return {
+    provider: liveCatalog.provider,
+    displayName: liveCatalog.displayName || staticCatalog?.displayName || provider,
+    defaultModel: hasFallbackDefaultModel ? fallbackDefaultModel : liveCatalog.defaultModel,
+    models,
+  };
+}
+
+export function buildUiCatalogs(
+  liveCatalogs: Partial<Record<string, ProviderCatalog>> | undefined
+): Partial<Record<string, ProviderCatalog>> {
+  const catalogs: Partial<Record<string, ProviderCatalog>> = {};
+  const providers = new Set<string>([
+    ...Object.keys(MODEL_CATALOGS),
+    ...Object.keys(liveCatalogs ?? {}),
+  ]);
+
+  for (const provider of providers) {
+    const catalog = buildUiCatalog(provider, liveCatalogs?.[provider]);
+    if (catalog) {
+      catalogs[provider] = catalog;
+    }
+  }
+
+  return catalogs;
+}
+
+export function findCatalogModel(
+  provider: string,
+  modelId: string,
+  catalogOverride?: ProviderCatalog
+) {
+  const overrideMatch = findCatalogModelInCatalog(catalogOverride, modelId);
+  if (overrideMatch) {
+    return overrideMatch;
+  }
+
+  return findCatalogModelInCatalog(MODEL_CATALOGS[provider.toLowerCase()], modelId);
 }
 
 export function resolveCatalogModelId(
@@ -751,18 +884,24 @@ export function getResolvedCatalogModels(
 ) {
   if (!catalog) return [];
 
+  const recommendedCatalog = MODEL_CATALOGS[catalog.provider.toLowerCase()] ?? catalog;
   const seenModelIds = new Set<string>();
 
-  return catalog.models
+  return recommendedCatalog.models
     .map((model) => {
       const resolvedModelId = resolveCatalogModelId(model.id, availableModels);
       const resolvedPresetModelMapping = model.presetMapping
         ? resolvePresetMapping(model.presetMapping, availableModels)
         : undefined;
+      const liveModelMatch = catalog.models.find(
+        (catalogModel) => normalizeModelId(catalogModel.id) === normalizeModelId(resolvedModelId)
+      );
 
       return {
         ...model,
         id: resolvedModelId,
+        name: liveModelMatch?.name || model.name,
+        description: liveModelMatch?.description ?? model.description,
         presetMapping: resolvedPresetModelMapping,
       };
     })
@@ -773,6 +912,74 @@ export function getResolvedCatalogModels(
     });
 }
 
-export function supportsExtendedContext(provider: string, modelId: string): boolean {
-  return findCatalogModel(provider, modelId)?.extendedContext === true;
+export function getSupplementalCatalogModels(
+  provider: string,
+  catalog: ProviderCatalog | undefined,
+  availableModels: CatalogAvailableModel[] = []
+) {
+  const normalizedProvider = provider.trim().toLowerCase();
+  if (!catalog || !normalizedProvider) return [];
+
+  const staticCatalog = MODEL_CATALOGS[normalizedProvider] ?? catalog;
+  const recommendedModels = getResolvedCatalogModels(catalog, availableModels);
+  const recommendedIds = new Set(recommendedModels.map((model) => normalizeModelId(model.id)));
+  const recommendedCanonicalIds = new Set(
+    recommendedModels
+      .map((model) => findCatalogModelInCatalog(staticCatalog, model.id)?.id)
+      .filter((modelId): modelId is string => Boolean(modelId))
+      .map((modelId) => normalizeModelId(modelId))
+  );
+  const seenCanonicalIds = new Set<string>();
+  const normalizedRawIds = new Set(availableModels.map((model) => normalizeModelId(model.id)));
+
+  return availableModels.filter((availableModel) => {
+    const normalizedAvailableModelId = normalizeModelId(availableModel.id);
+    const strippedModelId = stripManagedModelPrefix(availableModel.id);
+    const baseModelId = stripCustomtoolsSuffix(strippedModelId);
+    const matchedModel =
+      findCatalogModelInCatalog(staticCatalog, strippedModelId) ??
+      findCatalogModelInCatalog(staticCatalog, baseModelId);
+
+    if (recommendedIds.has(normalizeModelId(strippedModelId))) {
+      return false;
+    }
+
+    if (
+      normalizedAvailableModelId !== normalizeModelId(strippedModelId) &&
+      normalizedRawIds.has(normalizeModelId(strippedModelId))
+    ) {
+      return false;
+    }
+
+    const normalizedBaseModelId = normalizeModelId(baseModelId);
+    if (
+      normalizedBaseModelId !== normalizeModelId(strippedModelId) &&
+      normalizedRawIds.has(normalizedBaseModelId)
+    ) {
+      return false;
+    }
+
+    const canonicalId = matchedModel ? normalizeModelId(matchedModel.id) : normalizedBaseModelId;
+    if (matchedModel && recommendedCanonicalIds.has(canonicalId)) {
+      return false;
+    }
+    if (seenCanonicalIds.has(canonicalId)) {
+      return false;
+    }
+
+    if (!matchedModel && normalizedProvider === 'agy') {
+      return false;
+    }
+
+    seenCanonicalIds.add(canonicalId);
+    return true;
+  });
+}
+
+export function supportsExtendedContext(
+  provider: string,
+  modelId: string,
+  catalogOverride?: ProviderCatalog
+): boolean {
+  return findCatalogModel(provider, modelId, catalogOverride)?.extendedContext === true;
 }

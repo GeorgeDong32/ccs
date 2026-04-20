@@ -89,10 +89,19 @@ describe('Auth Utilities', () => {
       expect(isTokenExpired(futureTimestamp)).toBe(false);
     });
 
+    it('should treat Unix-seconds values as seconds, not milliseconds', () => {
+      const futureUnixSeconds = Math.floor((Date.now() + 60000) / 1000);
+      expect(isTokenExpired(futureUnixSeconds)).toBe(false);
+      expect(isTokenExpired(String(futureUnixSeconds))).toBe(false);
+    });
+
     it('should expose normalized expiry timestamps for string and numeric inputs', () => {
       const futureTimestamp = Date.now() + 60000;
       expect(getTokenExpiryTimestamp(futureTimestamp)).toBe(futureTimestamp);
       expect(getTokenExpiryTimestamp(String(futureTimestamp))).toBe(futureTimestamp);
+      const futureUnixSeconds = Math.floor((Date.now() + 60000) / 1000);
+      expect(getTokenExpiryTimestamp(futureUnixSeconds)).toBe(futureUnixSeconds * 1000);
+      expect(getTokenExpiryTimestamp(String(futureUnixSeconds))).toBe(futureUnixSeconds * 1000);
       expect(getTokenExpiryTimestamp('not-a-date')).toBeNull();
     });
   });

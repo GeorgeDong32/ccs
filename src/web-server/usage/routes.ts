@@ -8,7 +8,6 @@
  */
 
 import { Router } from 'express';
-import multer from 'multer';
 import { requireLocalAccessWhenAuthDisabled } from '../middleware/auth-middleware';
 import {
   handleSummary,
@@ -20,18 +19,9 @@ import {
   handleRefresh,
   handleStatus,
   handleInsights,
-  handleCursorImport,
-  handleCursorStatus,
-  handleCursorDataClear,
 } from './handlers';
 
 export { prewarmUsageCache, clearUsageCache, getLastFetchTimestamp } from './aggregator';
-
-// Multer configuration for CSV upload (memory storage, 10MB limit)
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
-});
 
 export const usageRoutes = Router();
 
@@ -75,8 +65,3 @@ usageRoutes.get('/status', handleStatus);
 
 // Insights endpoint (anomaly detection)
 usageRoutes.get('/insights', handleInsights);
-
-// Cursor usage endpoints
-usageRoutes.post('/cursor/import', upload.single('file'), handleCursorImport);
-usageRoutes.get('/cursor/status', handleCursorStatus);
-usageRoutes.delete('/cursor/data', handleCursorDataClear);

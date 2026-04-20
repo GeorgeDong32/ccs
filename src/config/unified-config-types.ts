@@ -10,7 +10,7 @@
  */
 
 import type { TargetType } from '../targets/target-adapter';
-import type { CLIProxyProvider } from '../cliproxy/types';
+import type { CLIProxyProvider, CliproxyRoutingStrategy } from '../cliproxy/types';
 import { CLIPROXY_PROVIDER_IDS } from '../cliproxy/provider-capabilities';
 
 /**
@@ -201,6 +201,11 @@ export interface TokenRefreshSettings {
   verbose?: boolean;
 }
 
+export interface CLIProxyRoutingConfig {
+  /** Credential selection strategy when multiple accounts match */
+  strategy?: CliproxyRoutingStrategy;
+}
+
 /**
  * CLIProxy configuration section.
  */
@@ -225,7 +230,39 @@ export interface CLIProxyConfig {
   token_refresh?: TokenRefreshSettings;
   /** Auto-sync API profiles to local CLIProxy config on settings change (default: true) */
   auto_sync?: boolean;
+  /** Routing strategy for multi-account CLIProxy selection */
+  routing?: CLIProxyRoutingConfig;
 }
+
+export type LoggingLevel = 'error' | 'warn' | 'info' | 'debug';
+
+/**
+ * CCS-owned structured logging configuration.
+ * Separate from cliproxy.logging, which controls CLIProxy runtime files.
+ */
+export interface LoggingConfig {
+  /** Enable CCS-owned structured runtime logging */
+  enabled: boolean;
+  /** Minimum level written to disk */
+  level: LoggingLevel;
+  /** Rotate current log when it reaches this size in MB */
+  rotate_mb: number;
+  /** Keep archived segments for this many days */
+  retain_days: number;
+  /** Redact sensitive values before persistence */
+  redact: boolean;
+  /** In-memory recent event buffer size for dashboard reads */
+  live_buffer_size: number;
+}
+
+export const DEFAULT_LOGGING_CONFIG: LoggingConfig = {
+  enabled: true,
+  level: 'info',
+  rotate_mb: 10,
+  retain_days: 7,
+  redact: true,
+  live_buffer_size: 250,
+};
 
 /**
  * User preferences.
@@ -282,6 +319,18 @@ export interface TavilyWebSearchConfig {
 }
 
 /**
+ * SearXNG WebSearch configuration.
+ */
+export interface SearxngWebSearchConfig {
+  /** Enable SearXNG JSON search backend (default: false) */
+  enabled?: boolean;
+  /** Base SearXNG URL, e.g. https://search.example.com (default: '') */
+  url?: string;
+  /** Number of results to fetch (default: 5) */
+  max_results?: number;
+}
+
+/**
  * Gemini CLI WebSearch configuration.
  */
 export interface GeminiWebSearchConfig {
@@ -324,10 +373,12 @@ export interface WebSearchProvidersConfig {
   exa?: ExaWebSearchConfig;
   /** Tavily Search API - API-backed search optimized for agent/tool usage */
   tavily?: TavilyWebSearchConfig;
-  /** DuckDuckGo HTML search - zero setup default backend */
-  duckduckgo?: DuckDuckGoWebSearchConfig;
   /** Brave Search API - higher quality results when BRAVE_API_KEY is set */
   brave?: BraveWebSearchConfig;
+  /** SearXNG JSON search - self-hosted or public instance backend */
+  searxng?: SearxngWebSearchConfig;
+  /** DuckDuckGo HTML search - zero setup default backend */
+  duckduckgo?: DuckDuckGoWebSearchConfig;
   /** Gemini CLI - optional legacy LLM fallback */
   gemini?: GeminiWebSearchConfig;
   /** Grok CLI - optional legacy LLM fallback */
@@ -447,6 +498,19 @@ export interface ProxyLocalConfig {
   port: number;
   /** Auto-start local binary (default: true) */
   auto_start: boolean;
+}
+
+export interface OpenAICompatProxyRoutingConfig {
+  default?: string;
+  background?: string;
+  think?: string;
+  longContext?: string;
+  webSearch?: string;
+  longContextThreshold?: number;
+}
+
+export interface OpenAICompatProxyConfig {
+  routing?: OpenAICompatProxyRoutingConfig;
 }
 
 /**
@@ -751,6 +815,40 @@ export const DEFAULT_DASHBOARD_AUTH_CONFIG: DashboardAuthConfig = {
 };
 
 /**
+ * Browser automation configuration.
+ * Controls Claude browser attach and Codex browser tooling.
+ */
+export interface BrowserClaudeConfig {
+  /** Enable Claude browser attach (default: false) */
+  enabled: boolean;
+  /** Chrome user-data directory used for attach mode */
+  user_data_dir: string;
+  /** DevTools port used for attach mode (default: 9222) */
+  devtools_port: number;
+}
+
+export interface BrowserCodexConfig {
+  /** Enable Codex browser tooling injection (default: true) */
+  enabled: boolean;
+}
+
+export interface BrowserConfig {
+  claude: BrowserClaudeConfig;
+  codex: BrowserCodexConfig;
+}
+
+export const DEFAULT_BROWSER_CONFIG: BrowserConfig = {
+  claude: {
+    enabled: false,
+    user_data_dir: '',
+    devtools_port: 9222,
+  },
+  codex: {
+    enabled: true,
+  },
+};
+
+/**
  * Image analysis configuration.
  * Routes image/PDF files through CLIProxy for vision analysis.
  */
@@ -807,6 +905,10 @@ export interface UnifiedConfig {
   profiles: Record<string, ProfileConfig>;
   /** CLIProxy configuration */
   cliproxy: CLIProxyConfig;
+  /** OpenAI-compatible local proxy configuration */
+  proxy?: OpenAICompatProxyConfig;
+  /** CCS-owned structured logging configuration */
+  logging?: LoggingConfig;
   /** User preferences */
   preferences: PreferencesConfig;
   /** WebSearch configuration */
@@ -829,6 +931,8 @@ export interface UnifiedConfig {
   channels?: OfficialChannelsConfig;
   /** Dashboard authentication configuration (optional) */
   dashboard_auth?: DashboardAuthConfig;
+  /** Browser automation configuration */
+  browser?: BrowserConfig;
   /** Image analysis configuration (vision via CLIProxy) */
   image_analysis?: ImageAnalysisConfig;
 }
@@ -883,6 +987,12 @@ export const DEFAULT_CLIPROXY_SERVER_CONFIG: CliproxyServerConfig = {
   },
 };
 
+export const DEFAULT_OPENAI_COMPAT_PROXY_CONFIG: OpenAICompatProxyConfig = {
+  routing: {
+    longContextThreshold: 60_000,
+  },
+};
+
 /**
  * Create an empty unified config with defaults.
  */
@@ -903,7 +1013,16 @@ export function createEmptyUnifiedConfig(): UnifiedConfig {
       },
       safety: { ...DEFAULT_CLIPROXY_SAFETY_CONFIG },
       auto_sync: true,
+      routing: {
+        strategy: 'round-robin',
+      },
     },
+    proxy: {
+      routing: {
+        ...DEFAULT_OPENAI_COMPAT_PROXY_CONFIG.routing,
+      },
+    },
+    logging: { ...DEFAULT_LOGGING_CONFIG },
     preferences: {
       theme: 'system',
       telemetry: false,
@@ -920,12 +1039,17 @@ export function createEmptyUnifiedConfig(): UnifiedConfig {
           enabled: false,
           max_results: 5,
         },
-        duckduckgo: {
-          enabled: true,
-          max_results: 5,
-        },
         brave: {
           enabled: false,
+          max_results: 5,
+        },
+        searxng: {
+          enabled: false,
+          url: '',
+          max_results: 5,
+        },
+        duckduckgo: {
+          enabled: true,
           max_results: 5,
         },
         gemini: {
@@ -955,6 +1079,10 @@ export function createEmptyUnifiedConfig(): UnifiedConfig {
     thinking: { ...DEFAULT_THINKING_CONFIG },
     channels: { ...DEFAULT_OFFICIAL_CHANNELS_CONFIG },
     dashboard_auth: { ...DEFAULT_DASHBOARD_AUTH_CONFIG },
+    browser: {
+      claude: { ...DEFAULT_BROWSER_CONFIG.claude },
+      codex: { ...DEFAULT_BROWSER_CONFIG.codex },
+    },
     image_analysis: { ...DEFAULT_IMAGE_ANALYSIS_CONFIG },
   };
 }

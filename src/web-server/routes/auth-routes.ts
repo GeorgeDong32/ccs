@@ -141,15 +141,10 @@ router.post('/logout', (req: Request, res: Response) => {
  */
 router.get('/check', (req: Request, res: Response) => {
   const authConfig = getDashboardAuthConfig();
-  const isLocal = isLoopbackRemoteAddress(req.socket.remoteAddress);
-
-  // When auth is not configured and access is remote, the dashboard API
-  // endpoints return 403. Signal auth-required so the UI can show the
-  // login/setup page instead of a silently broken dashboard.
-  const effectiveAuthRequired = authConfig.enabled || !isLocal;
+  const accessState = resolveDashboardAccessState(authConfig, req.socket.remoteAddress);
 
   res.json({
-    authRequired: effectiveAuthRequired,
+    ...accessState,
     authenticated: req.session?.authenticated ?? false,
     username: req.session?.username ?? null,
   });

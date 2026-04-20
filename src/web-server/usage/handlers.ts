@@ -676,7 +676,7 @@ export async function handleCursorImport(req: Request, res: Response): Promise<v
   let tempFilePath: string | null = null;
 
   try {
-    if (!req.file) {
+    if (!(req as unknown as Record<string, unknown>).file) {
       res.status(400).json({
         success: false,
         error: 'No file uploaded',
@@ -687,7 +687,8 @@ export async function handleCursorImport(req: Request, res: Response): Promise<v
 
     // Write buffer to temp file for streaming parser
     tempFilePath = path.join(os.tmpdir(), `cursor-usage-${Date.now()}.csv`);
-    fs.writeFileSync(tempFilePath, req.file.buffer);
+    const uploadedFile = (req as unknown as Record<string, { buffer: Buffer }>).file;
+    fs.writeFileSync(tempFilePath, uploadedFile.buffer);
 
     const result = await importCsvFile(tempFilePath);
 

@@ -10,6 +10,9 @@ interface FlowVizHeaderProps {
   onBack?: () => void;
   showDetails: boolean;
   onToggleDetails: () => void;
+  showPausedAccounts: boolean;
+  pausedAccountsCount: number;
+  onTogglePausedAccounts: () => void;
   hasCustomPositions: boolean;
   onResetPositions: () => void;
   pausedAccountsCount: number;
@@ -21,6 +24,9 @@ export function FlowVizHeader({
   onBack,
   showDetails,
   onToggleDetails,
+  showPausedAccounts,
+  pausedAccountsCount,
+  onTogglePausedAccounts,
   hasCustomPositions,
   onResetPositions,
   pausedAccountsCount,
