@@ -15,9 +15,6 @@ interface FlowVizHeaderProps {
   onTogglePausedAccounts: () => void;
   hasCustomPositions: boolean;
   onResetPositions: () => void;
-  pausedAccountsCount: number;
-  showPausedAccounts: boolean;
-  onTogglePausedAccounts: () => void;
 }
 
 export function FlowVizHeader({
@@ -29,9 +26,6 @@ export function FlowVizHeader({
   onTogglePausedAccounts,
   hasCustomPositions,
   onResetPositions,
-  pausedAccountsCount,
-  showPausedAccounts,
-  onTogglePausedAccounts,
 }: FlowVizHeaderProps) {
   const { t } = useTranslation();
   return (
