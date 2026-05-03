@@ -36,6 +36,10 @@
   --destructive: oklch(0.5 0.22 27); /* Darker red for visibility */
   --destructive-foreground: oklch(0.98 0.005 97.35); /* White */
 
+  /* Success: Teal/Emerald for positive indicators */
+  --success: oklch(0.55 0.15 160); /* Teal green */
+  --success-foreground: oklch(1 0 0); /* White */
+
   /* Sidebar colors - Light */
   --sidebar: oklch(0.9635 0.0067 97.35); /* Pampas */
   --sidebar-foreground: oklch(0.15 0.02 40);
@@ -81,6 +85,10 @@
   --destructive: oklch(0.396 0.141 25.723); /* Red 900 */
   --destructive-foreground: oklch(0.9635 0.0067 97.35); /* White */
 
+  /* Success: Teal/Emerald for positive indicators */
+  --success: oklch(0.45 0.15 160); /* Teal green - darker for dark theme */
+  --success-foreground: oklch(0.9635 0.0067 97.35); /* White */
+
   /* Sidebar Dark Theme */
   --sidebar: oklch(0.21 0.006 100); /* Match bg */
   --sidebar-foreground: oklch(0.9635 0.0067 97.35);
@@ -112,6 +120,8 @@
   --color-card-foreground: var(--card-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);

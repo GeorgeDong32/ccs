@@ -17,3 +17,10 @@
 - [ ] 3.2 Manually test in dev server: click model with cache read tokens, verify three badges display
 - [ ] 3.3 Manually test: click model without cache read tokens, verify cache hit badge is hidden
 - [ ] 3.4 Test locale switching: verify translations display correctly in all four languages
+
+## 4. Code Quality Fixes (W1 + W2)
+
+- [x] 4.1 Simplify `getCacheHitStatus()` - remove description field, remove t parameter
+- [x] 4.2 Update caller to use new simplified function signature
+- [x] 4.3 Remove dead i18n keys (cacheHitHigh/Medium/Low) from all 4 locales
+- [x] 4.4 Run `bun run format && bun run validate`
