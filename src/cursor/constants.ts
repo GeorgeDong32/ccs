@@ -9,6 +9,7 @@ export const CURSOR_SUBCOMMANDS = [
   'stop',
   'enable',
   'disable',
+  'usage',
   'help',
   '--help',
   '-h',

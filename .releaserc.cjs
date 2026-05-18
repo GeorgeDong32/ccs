@@ -103,7 +103,7 @@ const productionConfig = {
       '@semantic-release/github',
       {
         successComment:
-          ':tada: This issue has been resolved in version ${nextRelease.version} :tada:\n\nThe release is available on:\n- [npm package (@latest)](https://www.npmjs.com/package/@kaitranntt/ccs)\n- [GitHub release](${releases[0].url})',
+          ':tada: This issue has been resolved in version ${nextRelease.version} :tada:\n\nThe release is available on:\n- [npm package (@latest)](https://www.npmjs.com/package/@georgedong32/ccs)\n- [GitHub release](${releases[0].url})',
         releasedLabels: ['released'],
       },
     ],

@@ -1,10 +1,8 @@
-# Run quick checks before commit (typecheck + lint + format only).
-# Protected branches still enforce full CI parity in .husky/pre-push.
-# Feature branches use a faster pre-push gate plus GitHub CI.
-bun run typecheck && bun run lint:fix && bun run format:check
+# Pre-commit: format check only. Heavy checks (typecheck, lint) run in CI.
+bun run format:check
 
-# Validate UI if changes detected (typecheck + lint only)
+# Check UI formatting if UI changes detected
 if git diff --cached --name-only | grep -q "^ui/"; then
-  echo "[i] UI changes detected, running ui:validate..."
-  bun run ui:validate
+  echo "[i] UI changes detected, checking UI format..."
+  cd ui && bun run format:check
 fi

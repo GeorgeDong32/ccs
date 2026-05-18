@@ -378,7 +378,7 @@ See [Provider Flows](./provider-flows.md) → Authentication Flow section.
         +---------------+---------------------+
                         |
                         v
-               npm package (@kaitranntt/ccs)
+               npm package (@georgedong32/ccs)
                         |
                         v
                npm registry / GitHub releases
@@ -387,7 +387,7 @@ See [Provider Flows](./provider-flows.md) → Authentication Flow section.
 ### Package Contents
 
 ```
-  @kaitranntt/ccs
+  @georgedong32/ccs
         |
         +---> dist/           # Compiled CLI
         +---> dist/ui/        # Built dashboard
@@ -404,7 +404,7 @@ See [Provider Flows](./provider-flows.md) → Authentication Flow section.
 ### Local Installation
 
 ```
-  npm install -g @kaitranntt/ccs
+  npm install -g @georgedong32/ccs
         |
         v
   Global node_modules

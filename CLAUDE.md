@@ -41,22 +41,6 @@ gh pr checks <n>
 ### Absolute rule
 AI MUST NOT declare a task done, close a session, or move to the next task while CI is red or still running. Leaving a PR red and moving on is the primary failure mode this protocol prevents.
 
-### Dev Release vs Push CI
-
-- `CI` is the pull-request quality gate for contributor branches.
-- `Push CI` is the post-merge quality signal for `dev`.
-- `Dev Release` publishes the `@dev` package after `dev` changes land.
-- A red `Dev Release` does **not** automatically mean contributor code failed. Check `Push CI` first.
-- Verified on `2026-04-22` via `gh api repos/kaitranntt/ccs/branches/dev/protection`: `dev` currently requires `typecheck`, `lint`, `format`, `build`, and `test`, has no branch restrictions, and has no required PR-review gate.
-- `dev-release.yml` currently pushes with `PAT_TOKEN` because `dev` is protected by those required status checks. Do not switch it back to `github.token` unless branch protection changes with it.
-
-### Self-Hosted Runner Policy
-
-- Keep active CCS workflows on local self-hosted runners by default. Do **not** move jobs to `ubuntu-latest`, `macos-latest`, or other GitHub-hosted runners as the first security fix.
-- For this public repo, standard GitHub-hosted runners may not consume billable minutes, but the project policy is still local-runner-first to keep compute predictable and avoid future quota surprises across repos.
-- Make self-hosted use secure by gating untrusted PR triggers, avoiding checkout of untrusted code in privileged `pull_request_target` jobs, setting `persist-credentials: false`, and scoping PAT-backed credentials to the exact release/sync push step.
-- If a workflow truly needs GitHub-hosted runners, document the exception in this file and add a regression test for the exception.
-
 ## Core Function
 
 Multi-provider profile and runtime manager for Claude Code, Factory Droid,
@@ -103,7 +87,7 @@ broader topic.
 | Mistake | Consequence | Correct Action |
 |---------|-------------|----------------|
 | Running `validate` without `format` first | format:check fails | Run `bun run format` BEFORE validate |
-| Treating `Dev Release` as the contributor quality signal | Publish failures on `dev` look like broken code | Check PR `CI` on the branch and `Push CI` on `dev` first |
+| Assuming maintainability check is always strict | PR/feature branches run warning mode by default | Use `bun run maintainability:check:strict` before merge when touching debt-sensitive code |
 | Using `chore:` for dev→main PR | No npm release triggered | Use `feat:` or `fix:` prefix |
 | Committing directly to `main` or `dev` | Bypasses CI/review | Always use PRs |
 | Manual version bump or git tag | Conflicts with semantic-release | Let CI handle versioning |
@@ -218,35 +202,29 @@ These rules apply when the task is issue triage, backlog cleanup, labels, commen
 
 Quality gates MUST pass before pushing. **Both projects have identical workflow.**
 
-### Pre-Commit Sequence (FOLLOW THIS ORDER)
+### Pre-Commit Sequence (SIMPLIFIED — FORK)
 
 ```bash
-# Main project (from repo root)
-bun run format              # Step 1: Fix formatting
-bun run lint:fix            # Step 2: Fix lint issues
-bun run validate            # Step 3: Fast gate (typecheck + lint + format + test:fast)
-bun run validate:ci-parity  # Step 4: PR-CI parity gate (branch check + build + full tests + e2e)
+# Pre-commit hook runs format:check automatically (~1s)
+# Heavy checks (typecheck, lint) are deferred to CI
+
+# Before important pushes, run manually:
+bun run format              # Fix formatting
+bun run validate            # Full gate (typecheck + lint + format + tests)
 
 # UI project (if UI changed)
 cd ui
-bun run format              # Step 1: Fix formatting
-bun run lint:fix            # Step 2: Fix lint issues
-bun run validate            # Step 3: Final check (must pass)
+bun run format && bun run validate
 ```
 
-**WHY THIS ORDER:**
-- `validate` runs `format:check` which only VERIFIES—won't fix
-- If format:check fails, you skipped step 1
-- `validate` now uses read-only `lint`, so autofix still belongs in step 2
-- PR CI and `validate:ci-parity` both run non-mutating checks only
-
-### What Each Gate Runs
+### What Validate Runs
 
 | Project | Command | Runs |
 |---------|---------|------|
-| Main | `bun run validate` | typecheck + lint + format:check + test:fast |
-| Main | `bun run validate:ci-parity` | base branch check + typecheck + lint + format:check + build:all + test:all + test:e2e |
+| Main | `bun run validate` | typecheck + lint:fix + format:check + test:all |
 | UI | `bun run validate` | typecheck + lint:fix + format:check |
+
+**Note:** `maintainability:check` is a SEPARATE gate — not part of `validate`. Run it explicitly via `bun run maintainability:check[:strict|:warn]` when touching debt-sensitive code or before merging to protected branches.
 
 ### ESLint Rules (ALL errors)
 
@@ -271,19 +249,33 @@ bun run validate            # Step 3: Final check (must pass)
 
 ### Automatic Enforcement
 
-- `prepack` runs `build:all`
-- PR `CI` runs `typecheck`, `lint`, `format`, `build`, `test:all`, and `test:e2e`
-- `Push CI` runs the same quality suite on `dev` after merge, separate from release publishing
-- `Dev Release` still runs build + fast validation + slow tests + e2e before publishing and still requires `PAT_TOKEN` to push back to protected `dev`
+- `prepublishOnly` / `prepack` runs `build:all` + `validate` + `sync-version.js`
+- CI/CD runs `bun run validate` on every PR (maintainability is warning mode on PR events)
 - husky `pre-commit` runs quick lint/type/format checks
 - husky `pre-push` runs the full `bun run validate:ci-parity` gate on `main`/`dev`/hotfix branches
-- husky `pre-push` runs a faster feature-branch gate (`typecheck` + `lint` + `format:check` + `test:fast`) plus targeted checks based on changed files
+- husky `pre-push` runs a faster feature-branch gate (`typecheck` + `lint:fix` + `format:check` + targeted checks based on changed files) before GitHub CI handles the full matrix
 
-### Maintainability Gate Status
+### Maintainability Baseline Gate
 
-- The historical maintainability baseline gate is retired from the active CCS workflow.
-- `validate`, `validate:ci-parity`, PR `CI`, `Push CI`, and release workflows do **not** invoke `maintainability:check`.
-- Older roadmap references to `maintainability:baseline` / `maintainability:check` are historical context, not current repo commands.
+- Baseline file: `docs/metrics/maintainability-baseline.json`
+- Metric collector/check script: `scripts/maintainability-baseline.js`
+- Branch-aware gate wrapper: `scripts/maintainability-check.js`
+- Enforcement path: `bun run maintainability:check` (run separately — NOT part of `bun run validate`; invoked by `validate:ci-parity` on protected branches)
+- Gate modes:
+  - `strict`: protected branches (`main`, `dev`, `hotfix/*`, `kai/hotfix-*`) and equivalent CI refs
+  - `warn`: pull request CI and non-protected local branches (non-blocking for parallel PR workflow)
+  - override commands:
+    - `bun run maintainability:check:strict`
+    - `bun run maintainability:check:warn`
+- Gated metrics (must not increase vs baseline):
+  - `processExitReferenceCount`
+  - `synchronousFsApiReferenceCount`
+- Informational metrics (collected but not gated):
+  - `largeFileCountOver350Loc`
+- Baseline update policy:
+  1. Prefer reducing the metric and keeping the baseline unchanged.
+  2. On protected-branch integration (strict mode), if increase is intentional and accepted, run `bun run maintainability:baseline`.
+  3. Commit both the code change and `docs/metrics/maintainability-baseline.json`, and state reason in PR description.
 
 ## Critical Constraints (NEVER VIOLATE)
 
@@ -424,7 +416,7 @@ Windows fallback: Copies if symlinks unavailable
 - Native JSON only, no external dependencies
 
 ### TypeScript (src/*.ts)
-- Node.js 18+, Bun 1.0+, TypeScript 5.3, strict mode
+- Node.js 14+, Bun 1.0+, TypeScript 5.3, strict mode
 - `child_process.spawn`, handle SIGINT/SIGTERM
 
 ### Terminal Output
@@ -462,51 +454,41 @@ git commit -m "added new feature"
 git commit -m "Fixed bug"
 ```
 
-## Branching Strategy
+## Branching Strategy (Fork)
 
-### Hierarchy
-```
-main (production) ← dev (integration) ← feat/* | fix/* | docs/*
-     ↑
-     └── hotfix/* (critical only, skips dev)
-```
+This is a personal fork. Solo developer workflow — no PR gates or dev branch promotion.
 
-### Standard Workflow
+### Upstream Sync Strategy
+
+- **`upstream` remote**: `git@github.com:kaitranntt/ccs.git` (original repo)
+- **`upstream-main` branch**: Local-only tracking branch mirroring upstream/main
+- **Sync method**: Cherry-pick individual commits from upstream onto main
+
 ```bash
-git checkout dev && git pull origin dev
-git checkout -b feat/my-feature
-# ... develop with conventional commits ...
-git push -u origin feat/my-feature
-gh pr create --base dev --title "feat(scope): description"
-# After testing in @dev:
-gh pr create --base main --title "feat(release): promote dev to main"
-```
+# Update tracking branch
+git fetch upstream
+git checkout upstream-main && git reset --hard upstream/main
 
-### Hotfix Workflow (Production Emergencies Only)
-```bash
-git checkout main && git pull origin main
-git checkout -b hotfix/critical-bug
-# ... fix ...
-gh pr create --base main --title "fix: critical issue"
-# Then sync: git checkout dev && git merge main && git push
+# Review new commits
+git log main..upstream-main --oneline --no-merges
+
+# Cherry-pick desired commits
+git checkout main
+git cherry-pick <commit-hash>
 ```
 
 ### Rules
-1. **NEVER** commit directly to `main` or `dev`
-2. Feature branches from `dev`, hotfixes from `main`
-3. dev→main PRs MUST use `feat:` or `fix:` (not `chore:`)
-4. Delete branches after merge
+1. Personal modifications go directly on `main`
+2. Cherry-pick from upstream selectively — do NOT merge upstream/main wholesale
+3. Keep conventional commit format for clean history
 
-## Automated Releases (DO NOT MANUALLY TAG)
+## Automated Releases (NOT APPLICABLE — PERSONAL FORK)
 
-**Releases are FULLY AUTOMATED via semantic-release. NEVER manually bump versions or create tags.**
-
-| Branch | npm Tag | When |
-|--------|---------|------|
-| `main` | `@latest` | Merge PR to main |
-| `dev` | `@dev` | Push to dev branch |
-
-**CI handles:** version bump, CHANGELOG.md, git tag, npm publish, GitHub release.
+**Semantic-release is disabled in this fork.** No npm publish, Docker, or Cloudflare deploys.
+- `release.yml`, `dev-release.yml`, `docker-release.yml`, `deploy-ccs-worker.yml` — all set to `workflow_dispatch` only
+- `ai-review.yml` — deleted
+- Only `ci.yml` is active (runs typecheck + lint + format + tests on PR)
+- Version bumps are manual if needed
 
 ## Development
 
@@ -529,21 +511,13 @@ rm -rf ~/.ccs             # Clean environment
 
 **IMPORTANT:** Use `bun run dev` at CCS root for always up-to-date code. Do NOT use `ccs config` during development as it uses the globally installed version.
 
-## Two-Tier Pre-Push Checklist
+## Pre-Commit Checklist (Fork — Simplified)
 
-Optimized for iterative push-then-review workflow. Do NOT run the full gate on every push — CI is the safety net. Run the full gate once before asking for review / merge.
-
-### Tier 1 — Iterative push (feature branch)
-Husky `pre-push` auto-runs: `typecheck + lint + format:check + test:fast` plus targeted checks based on changed files. AI does **nothing extra** at push time.
-
-**After push (MANDATORY):** follow the [CI-First Protocol](#ci-first-protocol-mandatory) — watch CI until green. Do not move on while CI is red.
-
-### Tier 2 — Before requesting review / merge
-Run ONCE, not per push:
-- [ ] `bun run validate:ci-parity` — branch freshness + build + full non-e2e tests + e2e
-- [ ] `gh pr checks <n>` — all checks green
-- [ ] If UI changed: `cd ui && bun run format && bun run validate`
-- [ ] If touching command routing, proxy flows, workflows, or release logic: `bun run test:e2e`
+**Quality (BLOCKERS):**
+- [ ] `bun run format` — formatting fixed
+- [ ] `bun run validate` — run manually before important pushes (CI also validates)
+- [ ] `cd ui && bun run format && bun run validate` — if UI changed
+- [ ] If touching debt-sensitive code, run `bun run maintainability:check:strict` before merge
 
 ### Code / Docs / Standards (verify before merge)
 - [ ] Conventional commit format (`feat:`, `fix:`, etc.)
@@ -561,3 +535,16 @@ Run ONCE, not per push:
 - Validate early, fail fast with clear messages
 - Show available options on mistakes
 - Never leave broken state
+
+## Active Technologies
+- TypeScript 5.9 + React 19.2, Vite 7.2, Recharts 2.12, Tailwind CSS 4.1 (001-dashboard-ui-polish)
+- N/A (no data storage changes) (001-dashboard-ui-polish)
+- TypeScript 5.9 + React 19.2, react-i18next, i18nex (002-analytics-i18n-zh)
+- TypeScript 5.9 + React 19.2 + React, i18next, shadcn/ui, Tailwind CSS 4.1 (003-cost-leverage-ratio)
+- config.yaml (PreferencesConfig section) via existing `/api/config` endpoin (003-cost-leverage-ratio)
+- TypeScript 5.9 (strict mode) + Express (backend), React 19.2 + Recharts 2.12 (frontend), React Query (data fetching) (005-cursor-usage-stats)
+- File-based disk cache (`~/.ccs/cache/cursor-usage.json`), following existing `disk-cache.ts` pattern (005-cursor-usage-stats)
+- TypeScript 5.3, Node.js 22+, Bun 1.3.9 + husky 9.x (hooks), GitHub Actions (CI), commitlin (006-fork-forkify-repo)
+
+## Recent Changes
+- 001-dashboard-ui-polish: Added TypeScript 5.9 + React 19.2, Vite 7.2, Recharts 2.12, Tailwind CSS 4.1

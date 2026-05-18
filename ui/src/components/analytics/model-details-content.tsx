@@ -15,6 +15,11 @@ export function ModelDetailsContent({ model }: ModelDetailsContentProps) {
   const ioRatioStatus = getIoRatioStatus(model.ioRatio);
   const cacheTokens = model.cacheCreationTokens + model.cacheReadTokens;
   const totalTokensLabel = cacheTokens > 0 ? 'All Tokens' : t('analyticsCards.totalTokens');
+  const cacheHitRate =
+    model.cacheReadTokens > 0
+      ? (model.cacheReadTokens / (model.inputTokens + model.cacheReadTokens)) * 100
+      : 0;
+  const cacheHitVariant = cacheHitRate > 0 ? getCacheHitStatus(cacheHitRate) : null;
 
   return (
     <div className="space-y-4">
@@ -33,6 +38,11 @@ export function ModelDetailsContent({ model }: ModelDetailsContentProps) {
           <Badge variant={ioRatioStatus.variant} className="text-[10px] h-5 px-1.5">
             {model.ioRatio.toFixed(0)}:1 I/O
           </Badge>
+          {cacheHitVariant && (
+            <Badge variant={cacheHitVariant} className="text-[10px] h-5 px-1.5">
+              {cacheHitRate.toFixed(0)}% {t('analyticsCards.hitRate')}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -135,6 +145,12 @@ function TokenRow({ label, tokens, cost, color, icon: Icon }: TokenRowProps) {
       </div>
     </div>
   );
+}
+
+function getCacheHitStatus(rate: number): 'success' | 'secondary' | 'outline' {
+  if (rate >= 50) return 'success';
+  if (rate >= 20) return 'secondary';
+  return 'outline';
 }
 
 function getIoRatioStatus(ratio: number): {

@@ -340,7 +340,10 @@ describe('Session Tracker', function () {
     it('should return error when no lock exists', async function () {
       const result = await stopProxy(testPort);
       assert.strictEqual(result.stopped, false);
-      assert.strictEqual(result.error, 'No active CLIProxy session found');
+      assert.ok(
+        result.error.includes('No active CLIProxy session found') ||
+          result.error.includes('no session lock')
+      );
     });
 
     it('should cleanup stale lock when proxy is not running', async function () {

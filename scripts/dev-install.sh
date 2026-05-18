@@ -92,7 +92,7 @@ echo "[i] Installing globally with $PKG_MANAGER..."
 if [ "$PKG_MANAGER" = "bun" ]; then
     # Remove existing to avoid duplicate key warnings in bun's global package.json
     # (bun add -g appends instead of replacing file: protocol entries)
-    bun remove -g @kaitranntt/ccs 2>/dev/null || true
+    bun remove -g @georgedong32/ccs 2>/dev/null || true
     # Bun requires file: protocol for local tarballs
     bun add -g "file:$(pwd)/$TARBALL"
 else

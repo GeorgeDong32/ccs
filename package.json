@@ -1,6 +1,6 @@
 {
-  "name": "@kaitranntt/ccs",
-  "version": "7.79.1-dev.2",
+  "name": "@georgedong32/ccs",
+  "version": "7.73.0",
   "description": "Claude Code Switch - Instant profile switching between Claude, GLM, Kimi, and more",
   "keywords": [
     "cli",
@@ -10,18 +10,17 @@
     "profile",
     "switch"
   ],
-  "homepage": "https://github.com/kaitranntt/ccs",
+  "homepage": "https://github.com/GeorgeDong32/ccs",
   "bugs": {
-    "url": "https://github.com/kaitranntt/ccs/issues"
+    "url": "https://github.com/GeorgeDong32/ccs/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kaitranntt/ccs.git"
+    "url": "git+https://github.com/GeorgeDong32/ccs.git"
   },
   "license": "MIT",
   "author": {
-    "name": "Tam Nhu Tran (Kai)",
-    "email": "kaitranntt@users.noreply.github.com"
+    "name": "George Dong"
   },
   "main": "dist/ccs.js",
   "types": "dist/ccs.d.ts",
@@ -70,14 +69,12 @@
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write src/",
     "format:check": "prettier --check src/",
-    "validate": "bun run typecheck && bun run lint && bun run format:check && bun run test:fast",
+    "validate": "bun run typecheck && bun run lint:fix && bun run format:check && bun run test:all",
     "validate:ci-parity": "bash scripts/ci-parity-gate.sh",
     "verify:bundle": "node scripts/verify-bundle.js",
     "test": "bun run build && bun run test:all",
     "test:ci": "bun run test:all",
-    "test:fast": "node scripts/run-test-bucket.js fast",
-    "test:slow": "node scripts/run-test-bucket.js slow",
-    "test:all": "node scripts/run-test-bucket.js all",
+    "test:all": "bun test --timeout 15000 tests/unit tests/integration tests/npm",
     "test:unit": "bun test tests/unit",
     "test:npm": "bun test tests/npm/",
     "test:native": "bash tests/native/unix/edge-cases.sh",
@@ -108,6 +105,7 @@
     "https-proxy-agent": "^7.0.6",
     "js-yaml": "^4.1.1",
     "listr2": "^3.14.0",
+    "multer": "^2.1.1",
     "open": "^8.4.2",
     "ora": "^5.4.1",
     "proper-lockfile": "^4.1.2",
@@ -132,6 +130,7 @@
     "@types/express-rate-limit": "6.0.0",
     "@types/express-session": "^1.18.2",
     "@types/js-yaml": "^4.0.9",
+    "@types/multer": "^2.1.0",
     "@types/node": "^20.19.25",
     "@types/proper-lockfile": "^4.1.4",
     "@types/ws": "^8.5.10",

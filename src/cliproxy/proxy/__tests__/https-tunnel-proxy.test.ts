@@ -342,7 +342,7 @@ describe('HttpsTunnelProxy', () => {
       tunnel = new HttpsTunnelProxy({
         remoteHost: 'nonexistent.invalid.host',
         remotePort: 12345,
-        timeoutMs: 1000,
+        timeoutMs: 3000,
       });
 
       const port = await tunnel.start();

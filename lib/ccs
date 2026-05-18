@@ -4,7 +4,7 @@
 # https://github.com/kaitranntt/ccs
 set -euo pipefail
 
-readonly PACKAGE="@kaitranntt/ccs"
+readonly PACKAGE="@georgedong32/ccs"
 readonly MIN_NODE_VERSION=14
 
 # Check Node.js installed

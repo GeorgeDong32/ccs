@@ -1,0 +1,219 @@
+schema: spec-driven
+
+context: |
+  Project: CCS (Claude Code Switch)
+  Multi-provider profile and runtime manager for Claude Code, Codex CLI,
+  Factory Droid, and other compatible CLIs.
+  Constitution version: 1.0.0 (ratified 2026-05-03)
+
+  Tech stack:
+    - TypeScript 5.3 (strict mode), Node.js 18+, Bun 1.0+
+    - React 19.2 + Vite 7.2 + Tailwind CSS 4.1 (Dashboard UI)
+    - Express 4.x (web server / config API)
+    - Recharts 2.12 (analytics charts)
+    - CommonJS modules, ES2020 target
+
+  === Principle I: Strict Type Safety ===
+  All TypeScript MUST compile under strict: true with every additional check.
+    - `any` is forbidden — use `unknown` and narrow with type guards
+    - Non-null assertions (`!`) are forbidden — use explicit null checks
+      or optional chaining
+    - Unused variables/parameters MUST be removed or prefixed with `_`
+    - All code paths MUST return a value when a return type is declared
+    - Type guard functions MUST use `is` predicates for domain types
+    - Compiler flags: noUnusedLocals, noUnusedParameters, noImplicitReturns,
+      noFallthroughCasesInSwitch all enabled
+  Rationale: The codebase manages credentials, spawns child processes, and
+  proxies API traffic. Loose typing leads to runtime failures that are
+  expensive to diagnose in production.
+
+  === Principle II: Cross-Platform Parity ===
+  Every feature MUST behave identically on macOS, Linux, and Windows.
+    - Shell scripts require both lib/*.sh (bash 3.2+) and lib/*.ps1
+      (PowerShell 5.1+) implementations
+    - Path construction MUST use path.join() or path.resolve(), never
+      string concatenation with /
+    - File system operations MUST handle case-sensitive and
+      case-insensitive file systems (forceConsistentCasingInFileNames)
+    - Environment variable access MUST use bracket notation
+      (process.env['NAME']) for consistency
+    - Symlink operations MUST include a Windows copy fallback
+  Rationale: CCS users run Claude Code on all major platforms. A feature
+  that only works on macOS is a broken feature.
+
+  === Principle III: Test Isolation (NON-NEGOTIABLE) ===
+  Tests MUST NEVER read from or write to the user's real ~/.ccs/ or
+  ~/.claude/ directories.
+    - All code accessing CCS paths MUST route through getCcsDir() from
+      src/utils/config-manager.ts, which respects CCS_HOME
+    - Test suites MUST set process.env.CCS_HOME to a temporary directory
+      before any file system interaction
+    - Direct use of os.homedir() for CCS path construction is a blocking
+      review finding
+    - Test cleanup MUST remove temporary directories in afterAll or
+      equivalent hooks
+  Rationale: A single test writing to ~/.ccs/ can corrupt a developer's
+  active profiles, sessions, and credentials with no recovery path.
+
+  === Principle IV: CLI-First, Dashboard-Parity ===
+  Every user-facing configuration feature MUST have a CLI interface.
+  Features that configure state MUST also be operable through the Dashboard.
+  Execution (launching profiles) is CLI-only.
+    - New CLI commands or flags MUST update the corresponding --help
+      handler in src/commands/
+    - Configuration mutations available in the Dashboard MUST have a CLI
+      equivalent (and vice versa)
+    - CLI output MUST be parseable: structured data to stdout, errors to
+      stderr; support both JSON and human-readable formats where applicable
+  Rationale: Users work in terminals, scripts, and CI pipelines. A feature
+  locked behind the Dashboard is unreachable in headless environments.
+
+  === Principle V: ASCII-Only Terminal Output ===
+  CLI output MUST use ASCII indicators only. No emojis, no Unicode symbols
+  in terminal-facing strings.
+    - Status indicators: [OK], [!], [X], [i]
+    - Box borders for error frames: ╔═╗║╚╝ (the sole Unicode exception,
+      used for visual framing, not semantic content)
+    - Color output MUST be TTY-gated and MUST respect the NO_COLOR env var
+    - This constraint applies to src/ code that writes to stdout/stderr.
+      It does NOT apply to documentation, commit messages, or PR descriptions.
+  Rationale: Terminal emulators, CI log viewers, and accessibility tools
+  handle ASCII reliably. Emoji rendering is inconsistent across platforms
+  and breaks grep/awk pipelines.
+
+  === Principle VI: Fail Fast with Clarity ===
+  All error paths MUST validate early, surface actionable messages, and
+  never leave the system in a partially mutated state.
+    - User-facing errors MUST include what went wrong and what the user
+      can do about it
+    - When the user provides an invalid argument, show the list of valid
+      options
+    - File system mutations MUST be atomic or reversible; if a multi-step
+      operation fails partway, prior steps MUST be rolled back
+    - Exit codes MUST use the ExitCode enum from src/errors/exit-codes.ts;
+      do not call process.exit() with raw numeric literals
+    - Structured logging via createLogger() MUST capture error context
+      (event, message, and relevant metadata) for post-mortem analysis
+  Rationale: Users invoke CCS in automated pipelines and across network
+  boundaries. Vague errors waste time proportional to the distance between
+  the operator and the failure.
+
+  === Principle VII: YAGNI and KISS ===
+  Do not build features speculatively. Prefer the simplest correct solution.
+    - Every new module, abstraction, or dependency MUST solve a concrete,
+      current requirement — not a hypothetical future one
+    - Prefer standard library and existing project utilities over new
+      external dependencies
+    - Configuration MUST flow from a single source of truth (config.yaml
+      or unified config); do not introduce parallel config formats
+    - New abstractions MUST justify their existence: if a direct function
+      call suffices, do not wrap it in a class, factory, or registry
+  Rationale: CCS already spans CLI, web server, proxy, and Dashboard.
+  Every unnecessary abstraction multiplies the maintenance surface without
+  delivering user value.
+
+  === Principle VIII: Conventional Commits and Automated Quality Gates ===
+  All commits MUST follow conventional commit format. All pushes MUST pass
+  the quality gate before reaching the remote.
+    - Commit messages MUST match <type>(<scope>): <description> where type
+      is one of: feat, fix, perf, docs, style, refactor, test, chore, ci, build
+    - Before pushing: bun run format then bun run validate
+      (validate = typecheck + lint:fix + format:check + test:all)
+    - If Dashboard UI was changed, also run: cd ui && bun run format &&
+      bun run validate
+    - CI MUST be green before a task is declared complete. If CI is red,
+      fix the root cause locally — do not retry blindly
+    - Do NOT manually bump versions, create git tags, or run npm publish
+  Rationale: Conventional commits power the changelog and release automation.
+  The validate gate catches type errors, lint violations, and test regressions
+  before they reach code review.
+
+  === Quality Gates ===
+  Gate sequence (all mandatory):
+    1. bun run format — fix formatting (Prettier)
+    2. bun run validate — typecheck + lint:fix + format:check + test:all
+    3. cd ui && bun run format && bun run validate — Dashboard (if UI changed)
+    4. bun run maintainability:check — debt metrics (SEPARATE from validate)
+  Blocking lint rules (all error severity):
+    - @typescript-eslint/no-unused-vars (ignore _ prefix)
+    - @typescript-eslint/no-explicit-any
+    - @typescript-eslint/no-non-null-assertion
+    - prefer-const, no-var, eqeqeq
+  Formatting standard (Prettier):
+    - Single quotes, semicolons, 2-space indent
+    - Trailing commas (ES5), 100-char print width, mandatory arrow parens
+  Maintainability baseline:
+    - Gated metrics (MUST NOT increase vs baseline):
+      processExitReferenceCount, synchronousFsApiReferenceCount
+    - Baseline file: docs/metrics/maintainability-baseline.json
+    - If increase is intentional, update baseline and state reason in PR
+
+  === Development Workflow ===
+  Branching:
+    - Personal fork; modifications go directly on main
+    - Upstream sync uses selective cherry-pick from upstream/main, never
+      wholesale merge
+  Local development:
+    - Use bun run dev at CCS root for always-current code
+    - Do NOT use ccs config during development (it uses the globally
+      installed version)
+    - Use CCS_HOME=$(mktemp -d) for isolated testing environments
+    - Structured logging via createLogger('module:scope')
+  Documentation requirements (all user-facing changes MUST update):
+    1. The corresponding --help handler in src/commands/
+    2. Local docs/ if architecture changed
+    3. README.md if the user workflow changed
+  Dependency policy:
+    - Runtime dependencies: minimize; prefer built-in Node.js APIs
+    - Dev dependencies: pin major versions; update in dedicated PRs,
+      not mixed with feature work
+    - No dependency may require native compilation unless it provides a
+      pure-JS fallback (cross-platform parity)
+
+  === Governance ===
+  This constitution is the authoritative source for CCS coding standards.
+  It supersedes informal conventions, chat history, and ad-hoc decisions.
+  Amendment procedure:
+    1. Propose the change with rationale in a PR description
+    2. Update the constitution file with the new or revised principle
+    3. Increment version per semver:
+       MAJOR = principle removed or redefined incompatibly
+       MINOR = new principle added or materially expanded
+       PATCH = clarification, wording, or typo fix
+    4. Update LAST_AMENDED_DATE
+    5. Verify all dependent templates remain consistent
+  Compliance: every PR review SHOULD verify adherence to these principles.
+  bun run validate enforces the machine-checkable subset automatically.
+
+  === File Structure ===
+    - src/ → TypeScript source (main project)
+    - dist/ → compiled JavaScript (npm package)
+    - lib/ → native shell scripts (bash, PowerShell)
+    - ui/src/ → React dashboard components, hooks, pages
+    - ui/src/components/ui/ → shadcn/ui components
+    - dist/ui/ → built UI bundle (served by Express)
+    - tests/unit/, tests/integration/, tests/npm/, tests/native/
+
+rules:
+  proposal:
+    - Include which CCS principles (I–VIII) the change touches
+    - State whether CLI, Dashboard, or both need updating
+    - If adding dependencies, justify why built-in Node.js APIs are insufficient
+    - If the change touches file system paths, confirm getCcsDir() usage
+    - If the change introduces new abstractions, justify per Principle VII
+  spec:
+    - Functional requirements MUST use MUST/SHOULD/MAY language
+    - Every feature MUST specify both CLI and Dashboard interfaces (or explicitly justify CLI-only or Dashboard-only)
+    - Include test isolation requirements if the feature touches file system paths
+    - Include cross-platform considerations if the feature involves shell, paths, or symlinks
+    - Error messages MUST specify what went wrong and what the user can do (Principle VI)
+    - CLI output MUST define both JSON and human-readable output formats where applicable (Principle IV)
+  tasks:
+    - Run bun run format before bun run validate
+    - Include --help handler update task when adding/changing CLI commands
+    - Include test tasks that verify CCS_HOME isolation
+    - Mark cross-platform verification as a blocking task, not a polish item
+    - Include atomic/rollback validation for any multi-step file system mutations
+    - Include documentation update tasks (--help, docs/, README.md) per Principle IV
+    - Final task MUST include running the full validate gate
+    - If touching debt-sensitive code, include bun run maintainability:check task

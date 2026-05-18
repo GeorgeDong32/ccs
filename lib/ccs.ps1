@@ -8,7 +8,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$PACKAGE = "@kaitranntt/ccs"
+$PACKAGE = "@georgedong32/ccs"
 $MIN_NODE_VERSION = 14
 
 # Check Node.js installed

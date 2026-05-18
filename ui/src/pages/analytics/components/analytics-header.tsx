@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { DateRangeFilter } from '@/components/analytics/date-range-filter';
 import { RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { DataImportDialog } from './data-import-dialog';
 
 interface AnalyticsHeaderProps {
   dateRange: DateRange | undefined;
@@ -76,6 +77,7 @@ export function AnalyticsHeader({
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
         </Button>
+        <DataImportDialog />
       </div>
     </div>
   );

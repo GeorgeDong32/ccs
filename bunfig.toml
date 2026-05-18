@@ -5,4 +5,5 @@
 # Run e2e tests with: bun run test:e2e
 root = "./tests"
 preload = ["./tests/shared/fixtures/test-environment.js"]
-timeout = 10000
+# Some diagnostics tests spawn external binaries and need extra time
+timeout = 15000

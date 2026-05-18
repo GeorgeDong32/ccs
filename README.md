@@ -10,7 +10,7 @@ Run Claude, Codex, Droid-routed profiles, GLM, local models, and
 Anthropic-compatible APIs without config thrash.
 
 [![License](https://img.shields.io/badge/license-MIT-C15F3C?style=for-the-badge)](LICENSE)
-[![npm](https://img.shields.io/npm/v/@kaitranntt/ccs?style=for-the-badge&logo=npm)](https://www.npmjs.com/package/@kaitranntt/ccs)
+[![npm](https://img.shields.io/npm/v/@georgedong32/ccs?style=for-the-badge&logo=npm)](https://www.npmjs.com/package/@georgedong32/ccs)
 [![PoweredBy](https://img.shields.io/badge/PoweredBy-ClaudeKit-C15F3C?style=for-the-badge)](https://claudekit.cc?ref=HMNKXOHN)
 
 **[Website](https://ccs.kaitran.ca)** |
@@ -37,7 +37,7 @@ and move between providers in seconds.
 ## Quick Start
 
 ```bash
-npm install -g @kaitranntt/ccs
+npm install -g @georgedong32/ccs
 ccs config
 ```
 
