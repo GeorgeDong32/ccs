@@ -5,17 +5,17 @@
 
 ## 2. Create Sync Branch
 
-- [ ] 2.1 Create `sync/upstream-v7.79` from `upstream-main`
-- [ ] 2.2 Attempt `git merge main` to incorporate fork commits; if clean, proceed to step 4
-- [ ] 2.3 If merge conflicts: resolve using upstream-first strategy, manually re-apply cache hit rate badge changes
-- [ ] 2.4 Verify all 3 fork-specific functionalities are present in the merged code
+- [x] 2.1 Create `sync/upstream-v7.79` from `upstream-main`
+- [x] 2.2 Attempt `git merge main` to incorporate fork commits; if clean, proceed to step 4
+- [x] 2.3 If merge conflicts: resolve using upstream-first strategy, manually re-apply cache hit rate badge changes
+- [x] 2.4 Verify all 3 fork-specific functionalities are present in the merged code
 
 ## 3. Dependency and Build Alignment
 
-- [ ] 3.1 Run `bun install` to sync dependencies with upstream changes
-- [ ] 3.2 Run `cd ui && bun install` to sync UI dependencies
-- [ ] 3.3 Run `bun run build` and verify no build errors
-- [ ] 3.4 Run `cd ui && bun run build` and verify no UI build errors
+- [x] 3.1 Run `bun install` to sync dependencies with upstream changes
+- [x] 3.2 Run `cd ui && bun install` to sync UI dependencies
+- [x] 3.3 Run `bun run build` and verify no build errors
+- [x] 3.4 Run `cd ui && bun run build` and verify no UI build errors
 
 ## 4. Validation
 

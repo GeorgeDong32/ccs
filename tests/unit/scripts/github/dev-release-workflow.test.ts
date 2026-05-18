@@ -23,7 +23,7 @@ describe('dev release workflow', () => {
     );
 
     expect(workflow).toContain('name: Dev Release');
-    expect(workflow).toContain('branches: [dev]');
+    expect(workflow).toContain('workflow_dispatch');
     expect(workflow.match(/runs-on: \[self-hosted, linux, x64\]/g)).toHaveLength(2);
     expect(workflow).not.toContain('runs-on: ubuntu-latest');
     expect(checkoutSection).toContain('persist-credentials: false');

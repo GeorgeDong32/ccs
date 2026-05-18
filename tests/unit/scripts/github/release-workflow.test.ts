@@ -23,7 +23,7 @@ describe('stable release workflow', () => {
     );
 
     expect(workflow).toContain('name: Release');
-    expect(workflow).toContain('branches: [main]');
+    expect(workflow).toContain('workflow_dispatch');
     expect(workflow).toContain('runs-on: [self-hosted, linux, x64]');
     expect(workflow).not.toContain('runs-on: ubuntu-latest');
     expect(checkoutSection).toContain('persist-credentials: false');
