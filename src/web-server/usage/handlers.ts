@@ -13,9 +13,15 @@ import {
   getCachedMonthlyData,
   getCachedSessionData,
   getCachedHourlyData,
+  getUsageCacheSize,
   getLastFetchTimestamp,
   refreshUsageCache,
 } from './aggregator';
+import {
+  coalesceLegacyProviderlessBreakdowns,
+  getModelsUsed,
+  getProviderModelKey,
+} from './model-identity';
 import { importCsvFile, getCursorStatus, clearCursorData } from './cursor-data-store';
 import { CursorCsvError } from './cursor-csv-parser';
 import * as fs from 'fs';
@@ -48,20 +54,6 @@ const ANOMALY_THRESHOLDS = {
   COST_SPIKE_MULTIPLIER: 2,
   HIGH_CACHE_READ_TOKENS: 1_000_000_000,
 };
-
-/**
- * Compute effective I/O ratio including cache tokens.
- * Cache Read and Cache Creation are both input-side operations.
- */
-export function computeEffectiveIoRatio(
-  inputTokens: number,
-  cacheCreationTokens: number,
-  cacheReadTokens: number,
-  outputTokens: number
-): number {
-  if (outputTokens <= 0) return 0;
-  return (inputTokens + cacheCreationTokens + cacheReadTokens) / outputTokens;
-}
 
 // ============================================================================
 // Validation Helpers
@@ -106,6 +98,13 @@ export function validateOffset(offset?: string): number {
   return num;
 }
 
+export function validateDateRangeOrder(since?: string, until?: string): void {
+  if (!since || !until) return;
+  if (since > until) {
+    throw new Error('The "since" date must be earlier than or equal to "until"');
+  }
+}
+
 export function filterByDateRange<
   T extends { date?: string; month?: string; lastActivity?: string },
 >(data: T[] | undefined, since?: string, until?: string): T[] {
@@ -139,6 +138,80 @@ export function errorResponse(res: Response, error: unknown, defaultMessage: str
   });
 }
 
+/**
+ * Compute effective I/O ratio including cache tokens.
+ * Cache Read and Cache Creation are both input-side operations.
+ */
+export function computeEffectiveIoRatio(
+  inputTokens: number,
+  cacheCreationTokens: number,
+  cacheReadTokens: number,
+  outputTokens: number
+): number {
+  if (outputTokens <= 0) return 0;
+  return (inputTokens + cacheCreationTokens + cacheReadTokens) / outputTokens;
+}
+
+function roundToCurrency(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function calculateUsageTotalTokens(
+  input: number,
+  output: number,
+  cacheCreation: number,
+  cacheRead: number
+): number {
+  return input + output + cacheCreation + cacheRead;
+}
+
+function parseDateKey(dateString: string): Date {
+  return new Date(
+    Date.UTC(
+      Number(dateString.slice(0, 4)),
+      Number(dateString.slice(4, 6)) - 1,
+      Number(dateString.slice(6, 8))
+    )
+  );
+}
+
+function getInclusiveDayCount(start: Date, end: Date): number {
+  const dayMs = 24 * 60 * 60 * 1000;
+  return Math.floor((end.getTime() - start.getTime()) / dayMs) + 1;
+}
+
+function countCalendarDays(data: DailyUsage[], since?: string, until?: string): number {
+  const sortedDates = [...data]
+    .map((item) => item.date.replace(/-/g, ''))
+    .sort((a, b) => a.localeCompare(b));
+  const earliestDate = sortedDates[0];
+  const latestDate = sortedDates[sortedDates.length - 1];
+
+  if (since && until) {
+    return getInclusiveDayCount(parseDateKey(since), parseDateKey(until));
+  }
+
+  if (since) {
+    const end = until
+      ? parseDateKey(until)
+      : latestDate
+        ? parseDateKey(latestDate)
+        : parseDateKey(since);
+    return getInclusiveDayCount(parseDateKey(since), end);
+  }
+
+  if (until) {
+    const start = earliestDate ? parseDateKey(earliestDate) : parseDateKey(until);
+    return getInclusiveDayCount(start, parseDateKey(until));
+  }
+
+  if (data.length === 0) {
+    return 0;
+  }
+
+  return getInclusiveDayCount(parseDateKey(earliestDate), parseDateKey(latestDate));
+}
+
 // ============================================================================
 // Cost Calculation Helpers
 // ============================================================================
@@ -155,7 +228,7 @@ export function calculateTokenBreakdownCosts(dailyData: DailyUsage[]): TokenBrea
 
   for (const day of dailyData) {
     for (const breakdown of day.modelBreakdowns) {
-      const pricing = getModelPricing(breakdown.modelName);
+      const pricing = getModelPricing(breakdown.modelName, { provider: breakdown.provider });
       inputTokens += breakdown.inputTokens;
       outputTokens += breakdown.outputTokens;
       cacheCreationTokens += breakdown.cacheCreationTokens;
@@ -169,10 +242,10 @@ export function calculateTokenBreakdownCosts(dailyData: DailyUsage[]): TokenBrea
   }
 
   return {
-    input: { tokens: inputTokens, cost: Math.round(inputCost * 100) / 100 },
-    output: { tokens: outputTokens, cost: Math.round(outputCost * 100) / 100 },
-    cacheCreation: { tokens: cacheCreationTokens, cost: Math.round(cacheCreationCost * 100) / 100 },
-    cacheRead: { tokens: cacheReadTokens, cost: Math.round(cacheReadCost * 100) / 100 },
+    input: { tokens: inputTokens, cost: roundToCurrency(inputCost) },
+    output: { tokens: outputTokens, cost: roundToCurrency(outputCost) },
+    cacheCreation: { tokens: cacheCreationTokens, cost: roundToCurrency(cacheCreationCost) },
+    cacheRead: { tokens: cacheReadTokens, cost: roundToCurrency(cacheReadCost) },
   };
 }
 
@@ -356,6 +429,7 @@ export async function handleSummary(
   try {
     const since = validateDate(req.query.since);
     const until = validateDate(req.query.until);
+    validateDateRangeOrder(since, until);
     const dailyData = await getCachedDailyData();
     const filtered = filterByDateRange(dailyData, since, until);
 
@@ -373,8 +447,15 @@ export async function handleSummary(
       totalCost += day.totalCost;
     }
 
-    const totalTokens = totalInputTokens + totalOutputTokens;
+    const totalTokens = calculateUsageTotalTokens(
+      totalInputTokens,
+      totalOutputTokens,
+      totalCacheCreationTokens,
+      totalCacheReadTokens
+    );
     const tokenBreakdown = calculateTokenBreakdownCosts(filtered);
+    const totalDays = countCalendarDays(filtered, since, until);
+    const activeDays = filtered.length;
 
     res.json({
       success: true,
@@ -385,12 +466,14 @@ export async function handleSummary(
         totalCacheTokens: totalCacheCreationTokens + totalCacheReadTokens,
         totalCacheCreationTokens,
         totalCacheReadTokens,
-        totalCost: Math.round(totalCost * 100) / 100,
+        totalCost: roundToCurrency(totalCost),
         tokenBreakdown,
-        totalDays: filtered.length,
-        averageTokensPerDay: filtered.length > 0 ? Math.round(totalTokens / filtered.length) : 0,
-        averageCostPerDay:
-          filtered.length > 0 ? Math.round((totalCost / filtered.length) * 100) / 100 : 0,
+        totalDays,
+        activeDays,
+        averageTokensPerDay: totalDays > 0 ? Math.round(totalTokens / totalDays) : 0,
+        averageTokensPerActiveDay: activeDays > 0 ? Math.round(totalTokens / activeDays) : 0,
+        averageCostPerDay: totalDays > 0 ? roundToCurrency(totalCost / totalDays) : 0,
+        averageCostPerActiveDay: activeDays > 0 ? roundToCurrency(totalCost / activeDays) : 0,
       },
     });
   } catch (error) {
@@ -405,16 +488,22 @@ export async function handleDaily(
   try {
     const since = validateDate(req.query.since);
     const until = validateDate(req.query.until);
+    validateDateRangeOrder(since, until);
     const dailyData = await getCachedDailyData();
     const filtered = filterByDateRange(dailyData, since, until);
 
     const trends = filtered.map((day) => ({
       date: day.date,
-      tokens: day.inputTokens + day.outputTokens,
+      tokens: calculateUsageTotalTokens(
+        day.inputTokens,
+        day.outputTokens,
+        day.cacheCreationTokens,
+        day.cacheReadTokens
+      ),
       inputTokens: day.inputTokens,
       outputTokens: day.outputTokens,
       cacheTokens: day.cacheCreationTokens + day.cacheReadTokens,
-      cost: Math.round(day.totalCost * 100) / 100,
+      cost: roundToCurrency(day.totalCost),
       modelsUsed: day.modelsUsed.length,
     }));
 
@@ -431,6 +520,7 @@ export async function handleHourly(
   try {
     const since = validateDate(req.query.since);
     const until = validateDate(req.query.until);
+    validateDateRangeOrder(since, until);
     const hourlyData = await getCachedHourlyData();
 
     const filtered = (hourlyData || []).filter((h) => {
@@ -442,13 +532,18 @@ export async function handleHourly(
 
     const trends = filtered.map((hour) => ({
       hour: hour.hour,
-      tokens: hour.inputTokens + hour.outputTokens,
+      tokens: calculateUsageTotalTokens(
+        hour.inputTokens,
+        hour.outputTokens,
+        hour.cacheCreationTokens,
+        hour.cacheReadTokens
+      ),
       inputTokens: hour.inputTokens,
       outputTokens: hour.outputTokens,
       cacheTokens: hour.cacheCreationTokens + hour.cacheReadTokens,
-      cost: Math.round(hour.totalCost * 100) / 100,
+      cost: roundToCurrency(hour.totalCost),
       modelsUsed: hour.modelsUsed.length,
-      requests: hour.modelBreakdowns.length,
+      requests: hour.requestCount ?? hour.modelBreakdowns.length,
     }));
 
     const filledTrends = fillHourlyGaps(trends, since, until);
@@ -465,6 +560,7 @@ export async function handleModels(
   try {
     const since = validateDate(req.query.since);
     const until = validateDate(req.query.until);
+    validateDateRangeOrder(since, until);
     const dailyData = await getCachedDailyData();
     const filtered = filterByDateRange(dailyData, since, until);
 
@@ -472,6 +568,7 @@ export async function handleModels(
       string,
       {
         model: string;
+        provider?: string;
         inputTokens: number;
         outputTokens: number;
         cacheCreationTokens: number;
@@ -482,8 +579,10 @@ export async function handleModels(
 
     for (const day of filtered) {
       for (const breakdown of day.modelBreakdowns) {
-        const existing = modelMap.get(breakdown.modelName) || {
+        const modelKey = getProviderModelKey(breakdown);
+        const existing = modelMap.get(modelKey) || {
           model: breakdown.modelName,
+          provider: breakdown.provider,
           inputTokens: 0,
           outputTokens: 0,
           cacheCreationTokens: 0,
@@ -495,49 +594,59 @@ export async function handleModels(
         existing.cacheCreationTokens += breakdown.cacheCreationTokens;
         existing.cacheReadTokens += breakdown.cacheReadTokens;
         existing.cost += breakdown.cost;
-        modelMap.set(breakdown.modelName, existing);
+        modelMap.set(modelKey, existing);
       }
     }
 
     const models = Array.from(modelMap.values());
-    const totalTokens = models.reduce((sum, m) => sum + m.inputTokens + m.outputTokens, 0);
+    const totalTokens = models.reduce(
+      (sum, model) =>
+        sum +
+        calculateUsageTotalTokens(
+          model.inputTokens,
+          model.outputTokens,
+          model.cacheCreationTokens,
+          model.cacheReadTokens
+        ),
+      0
+    );
 
     const result = models
       .map((m) => {
-        const pricing = getModelPricing(m.model);
+        const pricing = getModelPricing(m.model, { provider: m.provider });
         const inputCost = (m.inputTokens / 1_000_000) * pricing.inputPerMillion;
         const outputCost = (m.outputTokens / 1_000_000) * pricing.outputPerMillion;
         const cacheCreationCost =
           (m.cacheCreationTokens / 1_000_000) * pricing.cacheCreationPerMillion;
         const cacheReadCost = (m.cacheReadTokens / 1_000_000) * pricing.cacheReadPerMillion;
-        const ioRatio = computeEffectiveIoRatio(
+        const ioRatio = m.outputTokens > 0 ? m.inputTokens / m.outputTokens : 0;
+        const totalModelTokens = calculateUsageTotalTokens(
           m.inputTokens,
+          m.outputTokens,
           m.cacheCreationTokens,
-          m.cacheReadTokens,
-          m.outputTokens
+          m.cacheReadTokens
         );
 
         return {
           model: m.model,
-          tokens: m.inputTokens + m.outputTokens,
+          provider: m.provider,
+          tokens: totalModelTokens,
           inputTokens: m.inputTokens,
           outputTokens: m.outputTokens,
           cacheCreationTokens: m.cacheCreationTokens,
           cacheReadTokens: m.cacheReadTokens,
           cacheTokens: m.cacheCreationTokens + m.cacheReadTokens,
-          cost: Math.round(m.cost * 100) / 100,
+          cost: roundToCurrency(m.cost),
           percentage:
-            totalTokens > 0
-              ? Math.round(((m.inputTokens + m.outputTokens) / totalTokens) * 1000) / 10
-              : 0,
+            totalTokens > 0 ? Math.round((totalModelTokens / totalTokens) * 1000) / 10 : 0,
           costBreakdown: {
-            input: { tokens: m.inputTokens, cost: Math.round(inputCost * 100) / 100 },
-            output: { tokens: m.outputTokens, cost: Math.round(outputCost * 100) / 100 },
+            input: { tokens: m.inputTokens, cost: roundToCurrency(inputCost) },
+            output: { tokens: m.outputTokens, cost: roundToCurrency(outputCost) },
             cacheCreation: {
               tokens: m.cacheCreationTokens,
-              cost: Math.round(cacheCreationCost * 100) / 100,
+              cost: roundToCurrency(cacheCreationCost),
             },
-            cacheRead: { tokens: m.cacheReadTokens, cost: Math.round(cacheReadCost * 100) / 100 },
+            cacheRead: { tokens: m.cacheReadTokens, cost: roundToCurrency(cacheReadCost) },
           },
           ioRatio: Math.round(ioRatio * 10) / 10,
         };
@@ -557,6 +666,7 @@ export async function handleSessions(
   try {
     const since = validateDate(req.query.since);
     const until = validateDate(req.query.until);
+    validateDateRangeOrder(since, until);
     const limit = validateLimit(req.query.limit);
     const offset = validateOffset(req.query.offset);
 
@@ -570,10 +680,15 @@ export async function handleSessions(
     const sessions = paginated.map((s) => ({
       sessionId: s.sessionId,
       projectPath: s.projectPath,
-      tokens: s.inputTokens + s.outputTokens,
+      tokens: calculateUsageTotalTokens(
+        s.inputTokens,
+        s.outputTokens,
+        s.cacheCreationTokens,
+        s.cacheReadTokens
+      ),
       inputTokens: s.inputTokens,
       outputTokens: s.outputTokens,
-      cost: Math.round(s.totalCost * 100) / 100,
+      cost: roundToCurrency(s.totalCost),
       lastActivity: s.lastActivity,
       modelsUsed: s.modelsUsed,
       target: s.target || 'claude',
@@ -601,25 +716,116 @@ export async function handleMonthly(
   try {
     const since = validateDate(req.query.since);
     const until = validateDate(req.query.until);
-    const monthlyData = await getCachedMonthlyData();
+    validateDateRangeOrder(since, until);
+    let filtered: Array<{
+      month: string;
+      inputTokens: number;
+      outputTokens: number;
+      cacheCreationTokens: number;
+      cacheReadTokens: number;
+      totalCost: number;
+      modelsUsed: string[];
+      modelBreakdowns: DailyUsage['modelBreakdowns'];
+    }>;
 
-    const filtered =
-      since || until
-        ? monthlyData.filter((m) => {
-            const monthDate = m.month.replace('-', '') + '01';
-            if (since && monthDate < since) return false;
-            if (until && monthDate > until) return false;
-            return true;
-          })
-        : monthlyData;
+    if (since || until) {
+      const dailyData = filterByDateRange(await getCachedDailyData(), since, until);
+      const monthMap = new Map<
+        string,
+        {
+          month: string;
+          inputTokens: number;
+          outputTokens: number;
+          cacheCreationTokens: number;
+          cacheReadTokens: number;
+          totalCost: number;
+          modelBreakdowns: Map<
+            string,
+            {
+              modelName: string;
+              provider?: string;
+              inputTokens: number;
+              outputTokens: number;
+              cacheCreationTokens: number;
+              cacheReadTokens: number;
+              cost: number;
+            }
+          >;
+        }
+      >();
+
+      for (const day of dailyData) {
+        const month = day.date.slice(0, 7);
+        const existing = monthMap.get(month) ?? {
+          month,
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheCreationTokens: 0,
+          cacheReadTokens: 0,
+          totalCost: 0,
+          modelBreakdowns: new Map(),
+        };
+
+        existing.inputTokens += day.inputTokens;
+        existing.outputTokens += day.outputTokens;
+        existing.cacheCreationTokens += day.cacheCreationTokens;
+        existing.cacheReadTokens += day.cacheReadTokens;
+        existing.totalCost += day.totalCost;
+        for (const breakdown of day.modelBreakdowns) {
+          const breakdownKey = getProviderModelKey(breakdown);
+          const existingBreakdown = existing.modelBreakdowns.get(breakdownKey) ?? {
+            modelName: breakdown.modelName,
+            provider: breakdown.provider,
+            inputTokens: 0,
+            outputTokens: 0,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            cost: 0,
+          };
+          existingBreakdown.inputTokens += breakdown.inputTokens;
+          existingBreakdown.outputTokens += breakdown.outputTokens;
+          existingBreakdown.cacheCreationTokens += breakdown.cacheCreationTokens;
+          existingBreakdown.cacheReadTokens += breakdown.cacheReadTokens;
+          existingBreakdown.cost += breakdown.cost;
+          existing.modelBreakdowns.set(breakdownKey, existingBreakdown);
+        }
+
+        monthMap.set(month, existing);
+      }
+
+      filtered = Array.from(monthMap.values())
+        .map((month) => {
+          const modelBreakdowns = coalesceLegacyProviderlessBreakdowns(
+            Array.from(month.modelBreakdowns.values())
+          );
+          return {
+            month: month.month,
+            inputTokens: month.inputTokens,
+            outputTokens: month.outputTokens,
+            cacheCreationTokens: month.cacheCreationTokens,
+            cacheReadTokens: month.cacheReadTokens,
+            totalCost: month.totalCost,
+            modelBreakdowns,
+            modelsUsed: getModelsUsed(modelBreakdowns),
+          };
+        })
+        .sort((a, b) => a.month.localeCompare(b.month));
+    } else {
+      filtered = await getCachedMonthlyData();
+    }
 
     const result = filtered.map((m) => ({
       month: m.month,
-      tokens: m.inputTokens + m.outputTokens,
+      tokens: calculateUsageTotalTokens(
+        m.inputTokens,
+        m.outputTokens,
+        m.cacheCreationTokens,
+        m.cacheReadTokens
+      ),
       inputTokens: m.inputTokens,
       outputTokens: m.outputTokens,
       cacheTokens: m.cacheCreationTokens + m.cacheReadTokens,
-      cost: Math.round(m.totalCost * 100) / 100,
+      cost: roundToCurrency(m.totalCost),
       modelsUsed: m.modelsUsed.length,
     }));
 
@@ -639,10 +845,9 @@ export async function handleRefresh(_req: Request, res: Response): Promise<void>
 }
 
 export function handleStatus(_req: Request, res: Response): void {
-  const cache = new Map(); // Note: this is a placeholder, actual cache is in aggregator
   res.json({
     success: true,
-    data: { lastFetch: getLastFetchTimestamp(), cacheSize: cache.size },
+    data: { lastFetch: getLastFetchTimestamp(), cacheSize: getUsageCacheSize() },
   });
 }
 
@@ -653,6 +858,7 @@ export async function handleInsights(
   try {
     const since = validateDate(req.query.since);
     const until = validateDate(req.query.until);
+    validateDateRangeOrder(since, until);
     const dailyData = await getCachedDailyData();
     const filtered = filterByDateRange(dailyData, since, until);
     const anomalies = detectAnomalies(filtered);
@@ -665,12 +871,12 @@ export async function handleInsights(
 }
 
 // ============================================================================
-// Cursor Usage Handlers
+// Cursor Usage Handlers (fork extension)
 // ============================================================================
 
 /**
- * Handle CSV file upload from Cursor usage export
- * Writes uploaded file to temp, parses, imports, then cleans up
+ * Handle CSV file upload from Cursor usage export.
+ * Writes uploaded file to temp, parses, imports, then cleans up.
  */
 export async function handleCursorImport(req: Request, res: Response): Promise<void> {
   let tempFilePath: string | null = null;
@@ -720,17 +926,13 @@ export async function handleCursorImport(req: Request, res: Response): Promise<v
   }
 }
 
-/**
- * Return current Cursor usage data status
- */
+/** Return current Cursor usage data status */
 export function handleCursorStatus(_req: Request, res: Response): void {
   const status = getCursorStatus();
   res.json({ success: true, data: status });
 }
 
-/**
- * Clear all stored Cursor usage data
- */
+/** Clear all stored Cursor usage data */
 export function handleCursorDataClear(_req: Request, res: Response): void {
   const eventsRemoved = clearCursorData();
 
