@@ -53,13 +53,13 @@
 
 **理由**：多入口 build 比完全独立的 config 更易维护。`analytics-main.tsx` import 的模块和完整 App 高度重叠，共享同一个 dependency graph 和 chunk splitting 策略即可。
 
-### D4: Security boundary — local-only by default
+### D4: Security boundary — local-only by default, explicit remote opt-in
 
-**选择**：默认 `CCS_ANALYTICS_HOST=127.0.0.1`。如果用户显式设置 `0.0.0.0`，启动日志打印警告。
+**选择**：默认 `CCS_ANALYTICS_HOST=127.0.0.1`。绑定非 loopback 地址必须设置 `CCS_ANALYTICS_ALLOW_REMOTE=1`，否则 runtime 拒绝启动并打印错误信息。
 
-**备选**：内置基本 auth 或 API key。
+**备选**：warning-only 或内置基本 auth。
 
-**理由**：analytics 暴露项目路径、模型名、token 用量和成本信息。但本 change 的目标是"PM2 本地轻量 runtime"，不是公网 dashboard。内置 auth 会增加实现复杂度并引入安全维护责任。local-only + 显式警告是最安全的默认值。公网访问需求应通过反向代理（nginx/caddy + basic auth）或后续 change 解决。
+**理由**：analytics 暴露项目路径、模型名、token 用量和成本信息。仅靠 warning 无法保护长期运行的 PM2 服务——配置错误后数据暴露是静默的。改为 fail closed：非 loopback 绑定必须显式 opt-in（`CCS_ANALYTICS_ALLOW_REMOTE=1`），否则拒绝启动。公网访问需求应通过反向代理（nginx/caddy + basic auth）或后续 change 解决。
 
 ### D5: PM2 single instance only
 
@@ -71,7 +71,7 @@
 
 ### [Risk] `AnalyticsPage` 的 import chain 可能间接引入 auth/layout 依赖
 
-→ **Mitigation**：在 `AnalyticsOnlyApp.tsx` 中只 import `AnalyticsPage` from `ui/src/pages/analytics/index.tsx`。构建时用 bundle analyzer 检查是否引入了 auth context 或 websocket hook。如果发现间接依赖，优先在 analytics shell 中提供 stub provider 而非修改 analytics page 本身。
+→ **Mitigation**：在 `AnalyticsOnlyApp.tsx` 中只 import `AnalyticsPage` from `ui/src/pages/analytics/index.tsx`。构建时用 bundle analyzer 检查是否引入了 auth context 或 websocket hook。CI guard 会 fail on forbidden imports。如果发现间接依赖，不允许静默 stub——必须由人工 review 决定是否将新 provider 加入允许列表或标记为不兼容。
 
 ### [Risk] Upstream 修改 analytics 页面后，shell 可能需要同步调整
 
