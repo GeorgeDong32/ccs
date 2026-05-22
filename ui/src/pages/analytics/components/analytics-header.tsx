@@ -8,9 +8,17 @@ import type { DateRange } from 'react-day-picker';
 import { subDays, startOfMonth } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { DateRangeFilter } from '@/components/analytics/date-range-filter';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DataImportDialog } from './data-import-dialog';
+import type { AnalyticsProfileOption } from '../hooks';
 
 interface AnalyticsHeaderProps {
   dateRange: DateRange | undefined;
@@ -20,6 +28,9 @@ interface AnalyticsHeaderProps {
   isRefreshing: boolean;
   lastUpdatedText: string | null;
   viewMode: 'daily' | 'hourly';
+  selectedProfile: string;
+  profileOptions: AnalyticsProfileOption[];
+  onProfileChange: (profile: string) => void;
 }
 
 export function AnalyticsHeader({
@@ -30,6 +41,9 @@ export function AnalyticsHeader({
   isRefreshing,
   lastUpdatedText,
   viewMode,
+  selectedProfile,
+  profileOptions,
+  onProfileChange,
 }: AnalyticsHeaderProps) {
   const { t } = useTranslation();
 
@@ -40,6 +54,21 @@ export function AnalyticsHeader({
         <p className="text-sm text-muted-foreground">{t('analytics.subtitle')}</p>
       </div>
       <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+        <Select value={selectedProfile} onValueChange={onProfileChange}>
+          <SelectTrigger className="h-8 w-[190px]" aria-label="Analytics profile">
+            <SelectValue placeholder="All profiles" />
+          </SelectTrigger>
+          <SelectContent>
+            {profileOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value} disabled={!option.supported}>
+                <span className="flex flex-col">
+                  <span>{option.label}</span>
+                  <span className="text-xs text-muted-foreground">{option.description}</span>
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button
           variant={viewMode === 'hourly' ? 'default' : 'outline'}
           size="sm"
@@ -79,6 +108,12 @@ export function AnalyticsHeader({
         </Button>
         <DataImportDialog />
       </div>
+      {selectedProfile !== 'all' && (
+        <p className="text-xs text-muted-foreground xl:text-right">
+          Selected-profile analytics include only default/account data with stable profile
+          attribution. CLIProxy and native runtime snapshots remain in All profiles.
+        </p>
+      )}
     </div>
   );
 }

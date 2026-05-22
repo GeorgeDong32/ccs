@@ -24,6 +24,7 @@ import {
 } from './model-identity';
 import { importCsvFile, getCursorStatus, clearCursorData } from './cursor-data-store';
 import { CursorCsvError } from './cursor-csv-parser';
+import { normalizeProfileQuery } from './profile-filter';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -36,6 +37,7 @@ import * as path from 'path';
 export interface UsageQuery {
   since?: string; // YYYYMMDD format
   until?: string; // YYYYMMDD format
+  profile?: string;
   limit?: string;
   offset?: string;
 }
@@ -429,8 +431,9 @@ export async function handleSummary(
   try {
     const since = validateDate(req.query.since);
     const until = validateDate(req.query.until);
+    const profile = normalizeProfileQuery(req.query.profile);
     validateDateRangeOrder(since, until);
-    const dailyData = await getCachedDailyData();
+    const dailyData = await getCachedDailyData(profile);
     const filtered = filterByDateRange(dailyData, since, until);
 
     let totalInputTokens = 0,
@@ -488,8 +491,9 @@ export async function handleDaily(
   try {
     const since = validateDate(req.query.since);
     const until = validateDate(req.query.until);
+    const profile = normalizeProfileQuery(req.query.profile);
     validateDateRangeOrder(since, until);
-    const dailyData = await getCachedDailyData();
+    const dailyData = await getCachedDailyData(profile);
     const filtered = filterByDateRange(dailyData, since, until);
 
     const trends = filtered.map((day) => ({
@@ -520,8 +524,9 @@ export async function handleHourly(
   try {
     const since = validateDate(req.query.since);
     const until = validateDate(req.query.until);
+    const profile = normalizeProfileQuery(req.query.profile);
     validateDateRangeOrder(since, until);
-    const hourlyData = await getCachedHourlyData();
+    const hourlyData = await getCachedHourlyData(profile);
 
     const filtered = (hourlyData || []).filter((h) => {
       const hourDate = h.hour.slice(0, 10).replace(/-/g, '');
@@ -560,8 +565,9 @@ export async function handleModels(
   try {
     const since = validateDate(req.query.since);
     const until = validateDate(req.query.until);
+    const profile = normalizeProfileQuery(req.query.profile);
     validateDateRangeOrder(since, until);
-    const dailyData = await getCachedDailyData();
+    const dailyData = await getCachedDailyData(profile);
     const filtered = filterByDateRange(dailyData, since, until);
 
     const modelMap = new Map<
@@ -666,11 +672,12 @@ export async function handleSessions(
   try {
     const since = validateDate(req.query.since);
     const until = validateDate(req.query.until);
+    const profile = normalizeProfileQuery(req.query.profile);
     validateDateRangeOrder(since, until);
     const limit = validateLimit(req.query.limit);
     const offset = validateOffset(req.query.offset);
 
-    const sessionData = await getCachedSessionData();
+    const sessionData = await getCachedSessionData(profile);
     const filtered = filterByDateRange(sessionData, since, until);
     const sorted = [...filtered].sort(
       (a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
@@ -716,6 +723,7 @@ export async function handleMonthly(
   try {
     const since = validateDate(req.query.since);
     const until = validateDate(req.query.until);
+    const profile = normalizeProfileQuery(req.query.profile);
     validateDateRangeOrder(since, until);
     let filtered: Array<{
       month: string;
@@ -729,7 +737,7 @@ export async function handleMonthly(
     }>;
 
     if (since || until) {
-      const dailyData = filterByDateRange(await getCachedDailyData(), since, until);
+      const dailyData = filterByDateRange(await getCachedDailyData(profile), since, until);
       const monthMap = new Map<
         string,
         {
@@ -811,7 +819,7 @@ export async function handleMonthly(
         })
         .sort((a, b) => a.month.localeCompare(b.month));
     } else {
-      filtered = await getCachedMonthlyData();
+      filtered = await getCachedMonthlyData(profile);
     }
 
     const result = filtered.map((m) => ({
@@ -858,8 +866,9 @@ export async function handleInsights(
   try {
     const since = validateDate(req.query.since);
     const until = validateDate(req.query.until);
+    const profile = normalizeProfileQuery(req.query.profile);
     validateDateRangeOrder(since, until);
-    const dailyData = await getCachedDailyData();
+    const dailyData = await getCachedDailyData(profile);
     const filtered = filterByDateRange(dailyData, since, until);
     const anomalies = detectAnomalies(filtered);
     const summary = summarizeAnomalies(anomalies);
