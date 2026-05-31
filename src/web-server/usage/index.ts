@@ -62,6 +62,9 @@ export {
 // Routes
 export { usageRoutes } from './routes';
 
+// Aggregator lifecycle
+export { shutdownUsageAggregator } from './aggregator';
+
 // Handlers (for testing)
 export {
   validateDate,

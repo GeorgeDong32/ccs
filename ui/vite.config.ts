@@ -21,6 +21,10 @@ export default defineConfig({
     sourcemap: false,
     minify: 'esbuild',
     rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        analytics: path.resolve(__dirname, 'index.analytics.html'),
+      },
       output: {
         manualChunks: {
           // Vendor chunks - split large dependencies
