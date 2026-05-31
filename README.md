@@ -171,6 +171,37 @@ ccs glm "clean up tests and docs"
 ccs ollama "summarize these logs"
 ```
 
+## Analytics-Only Runtime
+
+For users who only need the analytics dashboard, CCS provides a lightweight runtime that serves only analytics without the full Dashboard server.
+
+```bash
+# Build the analytics UI bundle
+bun run build:analytics-ui
+
+# Build the analytics server
+bun run build:analytics-server
+
+# Start analytics-only server (default: http://127.0.0.1:3000)
+bun run start:analytics
+```
+
+**Environment variables:**
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CCS_ANALYTICS_HOST` | `127.0.0.1` | Bind address (use `0.0.0.0` for remote access) |
+| `CCS_ANALYTICS_PORT` | `3000` | Listen port |
+| `CCS_ANALYTICS_ALLOW_REMOTE` | unset | Set to `1` to allow non-loopback binding |
+
+**Security:** Defaults to local-only binding. To expose remotely, set `CCS_ANALYTICS_ALLOW_REMOTE=1` and use a reverse proxy (nginx/caddy) with authentication.
+
+**PM2 usage:**
+```bash
+pm2 start dist/src/bin/analytics-only-runtime.js --name ccs-analytics
+```
+
+See `docs/` for details.
+
 ## Community Projects
 
 | Project | Author | Description |

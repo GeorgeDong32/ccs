@@ -27,7 +27,7 @@ The API endpoint contract is now specified in `specs/analytics-runtime/spec.md` 
 ## 5. Security and PM2 Configuration
 
 - [x] 5.1 Implement fail-closed security: default `127.0.0.1` binding; refuse to start on non-loopback unless `CCS_ANALYTICS_ALLOW_REMOTE=1` is set
-- [ ] 5.2 Document PM2 single-instance startup command, environment variables, and security boundary in a brief README section or doc
+- [x] 5.2 Document PM2 single-instance startup command, environment variables, and security boundary in a brief README section or doc
 
 ## 6. Testing and Verification
 
@@ -35,11 +35,11 @@ The API endpoint contract is now specified in `specs/analytics-runtime/spec.md` 
 - [x] 6.2 Add test verifying graceful shutdown calls `shutdownUsageAggregator()`
 - [x] 6.3 Add test verifying non-usage endpoints return 404
 - [x] 6.4 Add test verifying runtime refuses to start on non-loopback without `CCS_ANALYTICS_ALLOW_REMOTE=1`
-- [ ] 6.5 Verify browser-level: analytics page loads without auth redirect, no failed API calls, no WebSocket reconnect UI
-- [ ] 6.6 Verify full server (`src/web-server/index.ts`) behavior is unchanged after all changes
+- [x] 6.5 Verify browser-level: analytics page loads without auth redirect, no failed API calls, no WebSocket reconnect UI
+- [x] 6.6 Verify full server (`src/web-server/index.ts`) behavior is unchanged after all changes
 
 ## 7. Upstream Sync Compatibility Check
 
 - [x] 7.1 Verify analytics-only shell only depends on `ui/src/pages/analytics/**` and shared providers, not on internal analytics page structure
 - [x] 7.2 Verify backend runtime only imports `usageRoutes` and public aggregator functions, not internal usage module details
-- [ ] 7.3 Verify CI guard catches forbidden imports if upstream adds new provider dependencies to analytics page
+- [x] 7.3 Verify CI guard catches forbidden imports if upstream adds new provider dependencies to analytics page
