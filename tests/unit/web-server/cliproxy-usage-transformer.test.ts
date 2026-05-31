@@ -142,7 +142,6 @@ describe('cliproxy usage transformer', () => {
     expect(merged[0]).not.toHaveProperty('source');
     expect(merged[0]).not.toHaveProperty('authIndex');
   });
-  });
 
   it('preserves legitimate duplicate requests when the incoming batch has more occurrences', () => {
     const details = extractCliproxyUsageHistoryDetails(sampleResponse);
