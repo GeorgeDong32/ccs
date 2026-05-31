@@ -8,6 +8,7 @@
  */
 
 import { Router } from 'express';
+import multer from 'multer';
 import { requireLocalAccessWhenAuthDisabled } from '../middleware/auth-middleware';
 import {
   handleSummary,
@@ -19,6 +20,9 @@ import {
   handleRefresh,
   handleStatus,
   handleInsights,
+  handleCursorImport,
+  handleCursorStatus,
+  handleCursorDataClear,
 } from './handlers';
 
 export { prewarmUsageCache, clearUsageCache, getLastFetchTimestamp } from './aggregator';
@@ -27,6 +31,12 @@ export const usageRoutes = Router();
 
 const USAGE_WRITE_ACCESS_ERROR =
   'Usage refresh requires localhost access when dashboard auth is disabled.';
+
+// Multer config for Cursor CSV upload — memory storage, 10MB limit
+const cursorUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 usageRoutes.use((req, res, next) => {
   if (req.method.toUpperCase() !== 'POST') {
@@ -65,3 +75,12 @@ usageRoutes.get('/status', handleStatus);
 
 // Insights endpoint (anomaly detection)
 usageRoutes.get('/insights', handleInsights);
+
+// Cursor usage data import (multipart CSV upload)
+usageRoutes.post('/cursor/import', cursorUpload.single('file'), handleCursorImport);
+
+// Cursor usage data status
+usageRoutes.get('/cursor/status', handleCursorStatus);
+
+// Clear all stored Cursor usage data
+usageRoutes.post('/cursor/clear', handleCursorDataClear);
