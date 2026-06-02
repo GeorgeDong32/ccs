@@ -6,6 +6,7 @@
  */
 
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import {
   aggregateDailyUsage,
@@ -25,7 +26,7 @@ import {
 } from './disk-cache';
 import { ok, info, fail } from '../../utils/ui';
 
-import { getClaudeConfigDir, getDefaultClaudeConfigDir } from '../../utils/claude-config-path';
+import { getClaudeConfigDir } from '../../utils/claude-config-path';
 import {
   loadCachedCliproxyData,
   startCliproxySync,
@@ -168,14 +169,34 @@ function isPathWithinDir(childPath: string, parentPath: string): boolean {
   return relative.length > 0 && !relative.startsWith('..') && !path.isAbsolute(relative);
 }
 
+/**
+ * Resolve default Claude Code project directory independently of CCS_HOME.
+ *
+ * Path resolution order:
+ * 1. CCS_ANALYTICS_CLAUDE_DATA_DIR (explicit override)
+ * 2. ~/.claude/projects (Claude Code default on all platforms)
+ *
+ * CLAUDE_CONFIG_DIR is intentionally NOT used here — when it points to a CCS
+ * instance, using it would cause double-counting since instance data is already
+ * collected separately by getInstancePaths().
+ */
+export function getDefaultClaudeProjectsDir(): string {
+  if (process.env['CCS_ANALYTICS_CLAUDE_DATA_DIR']) {
+    return process.env['CCS_ANALYTICS_CLAUDE_DATA_DIR'];
+  }
+  return path.join(os.homedir(), '.claude', 'projects');
+}
+
 function getDefaultProjectsDirForAnalytics(): string {
+  // CCS instance-scoped Claude config (correct for instances within ~/.ccs/)
   const activeClaudeConfigDir = getClaudeConfigDir();
   const instancesDir = getCcsInstancesDir();
-  const claudeConfigDir = isPathWithinDir(activeClaudeConfigDir, instancesDir)
-    ? getDefaultClaudeConfigDir()
-    : activeClaudeConfigDir;
-
-  return path.join(claudeConfigDir, 'projects');
+  if (isPathWithinDir(activeClaudeConfigDir, instancesDir)) {
+    // Active config is an instance — use global default Claude dir
+    return getDefaultClaudeProjectsDir();
+  }
+  // Active config is the global default — use it directly
+  return path.join(activeClaudeConfigDir, 'projects');
 }
 
 /**

@@ -11,7 +11,12 @@
  * Remote: set CCS_ANALYTICS_HOST=0.0.0.0 and CCS_ANALYTICS_ALLOW_REMOTE=1
  */
 
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { startAnalyticsServer, isLoopbackHost } from '../web-server/analytics-only-server';
+import { getDefaultClaudeProjectsDir } from '../web-server/usage/aggregator';
+import { getCcsDir } from '../config/config-loader-facade';
 
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 3000;
@@ -34,6 +39,32 @@ async function main(): Promise<void> {
     console.warn(
       `[!] Binding to ${host} — analytics data may be exposed. Use a reverse proxy for authentication.`
     );
+  }
+
+  // Startup diagnostics: log resolved data source paths
+  const ccsDir = getCcsDir();
+  const claudeProjectsDir = getDefaultClaudeProjectsDir();
+  const ccsInstancesDir = path.join(ccsDir, 'instances');
+  const ccsCacheDir = path.join(ccsDir, 'cache');
+  const codexSessionsDir = path.join(os.homedir(), '.codex', 'sessions');
+  const droidConfigPath = path.join(os.homedir(), '.factory', 'settings.json');
+
+  const sources: Array<{ label: string; dir: string }> = [
+    { label: 'Claude Code', dir: claudeProjectsDir },
+    { label: 'CCS instances', dir: ccsInstancesDir },
+    { label: 'CCS cache', dir: ccsCacheDir },
+    { label: 'Codex sessions', dir: codexSessionsDir },
+    { label: 'Droid (Factory)', dir: path.dirname(droidConfigPath) },
+  ];
+
+  for (const { label, dir } of sources) {
+    const reachable = fs.existsSync(dir);
+    console.log(`[i] ${label}: ${dir}${reachable ? '' : ' (not found)'}`);
+  }
+
+  const hasAnySource = sources.some((s) => fs.existsSync(s.dir));
+  if (!hasAnySource) {
+    console.warn('[!] No analytics data sources reachable. Analytics page will show empty data.');
   }
 
   const { cleanup } = await startAnalyticsServer({

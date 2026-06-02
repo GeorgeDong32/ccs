@@ -77,7 +77,7 @@ export async function startAnalyticsServer(
     res.status(404).json({ error: 'Not found - analytics-only mode' });
   });
 
-  app.use(express.static(staticDir));
+  app.use(express.static(staticDir, { index: false }));
 
   // SPA fallback — serve analytics HTML for any non-API route
   app.get('*', (_req, res) => {
