@@ -28,5 +28,5 @@
 
 ## 5. Commit
 
-- [ ] 5.1 Create commits with conventional format: `fix(analytics): decouple Claude data path from CCS_HOME` and `test(analytics): add regression test suite for analytics-only runtime`
-- [ ] 5.2 Push to `feat/analytics-only-runtime`
+- [x] 5.1 Create commits with conventional format: `fix(analytics): decouple Claude data path from CCS_HOME` and `test(analytics): add regression test suite for analytics-only runtime`
+- [x] 5.2 Push to `feat/analytics-only-runtime`

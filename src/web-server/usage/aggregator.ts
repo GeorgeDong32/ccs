@@ -192,11 +192,16 @@ function getDefaultProjectsDirForAnalytics(): string {
   const activeClaudeConfigDir = getClaudeConfigDir();
   const instancesDir = getCcsInstancesDir();
   if (isPathWithinDir(activeClaudeConfigDir, instancesDir)) {
-    // Active config is an instance — use global default Claude dir
+    // CLAUDE_CONFIG_DIR points to a CCS instance — use global default
+    // to avoid double-counting data already loaded via getInstancePaths()
     return getDefaultClaudeProjectsDir();
   }
-  // Active config is the global default — use it directly
-  return path.join(activeClaudeConfigDir, 'projects');
+  if (process.env['CLAUDE_CONFIG_DIR']) {
+    // User explicitly set a custom (non-CCS-instance) Claude config — respect it
+    return path.join(activeClaudeConfigDir, 'projects');
+  }
+  // No explicit override — use the real ~/.claude/projects/
+  return getDefaultClaudeProjectsDir();
 }
 
 /**

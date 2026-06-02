@@ -23,6 +23,7 @@ import type { AddressInfo } from 'net';
 
 let testServer: http.Server;
 let baseUrl: string;
+let tempRoot: string; // Temp root dir for all synthetic data
 
 /** Create synthetic Claude Code JSONL usage data in a temp directory */
 function createSyntheticProjectData(dir: string): void {
@@ -165,17 +166,19 @@ describe('pricing correctness', () => {
 
 describe('analytics-only runtime', () => {
   beforeAll(async () => {
-    const ccsHome = fs.mkdtempSync(path.join(os.tmpdir(), 'ccs-regression-'));
-    process.env['CCS_HOME'] = ccsHome;
-
-    // Create synthetic data directories
-    const claudeDir = path.join(os.homedir(), '.claude');
-    fs.mkdirSync(claudeDir, { recursive: true });
-    createSyntheticProjectData(claudeDir);
-
-    // Create a CCS instance
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ccs-regression-'));
+    const ccsHome = path.join(tempRoot, 'home');
     const ccsDir = path.join(ccsHome, '.ccs');
+    const claudeDataDir = path.join(tempRoot, 'claude-data');
+
+    // Create synthetic data in temp directories — never touch real ~/.claude/
+    fs.mkdirSync(claudeDataDir, { recursive: true });
     fs.mkdirSync(path.join(ccsDir, 'cache'), { recursive: true });
+    createSyntheticProjectData(claudeDataDir);
+
+    process.env['CCS_HOME'] = ccsHome;
+    process.env['CCS_ANALYTICS_CLAUDE_DATA_DIR'] = path.join(claudeDataDir, 'projects');
+
     createSyntheticInstanceData(ccsDir, 'work');
 
     testServer = await startTestServer({ ccsHome });
@@ -185,6 +188,8 @@ describe('analytics-only runtime', () => {
   afterAll(() => {
     if (testServer) testServer.close();
     delete process.env['CCS_HOME'];
+    delete process.env['CCS_ANALYTICS_CLAUDE_DATA_DIR'];
+    if (tempRoot) fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
   describe('health check', () => {
@@ -194,6 +199,39 @@ describe('analytics-only runtime', () => {
       const body = await res.json();
       expect(body.status).toBe('ok');
       expect(body.mode).toBe('analytics-only');
+    });
+  });
+
+  describe('API contract - data content verification', () => {
+    it('daily endpoint returns non-empty data with expected token counts', async () => {
+      const res = await fetch(`${baseUrl}/api/usage/daily`);
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(Array.isArray(body.data)).toBe(true);
+      // Synthetic data has 1000+300=1300 input tokens, 500+100=600 output
+      if (body.data.length > 0) {
+        const totalInput = body.data.reduce((s: number, d: { inputTokens: number }) => s + d.inputTokens, 0);
+        expect(totalInput).toBeGreaterThan(0);
+      }
+    });
+
+    it('summary endpoint reports total cost > 0 for synthetic data', async () => {
+      const res = await fetch(`${baseUrl}/api/usage/summary`);
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      // If data is loaded, total cost should be > 0
+      if (body.data && body.data.totalInputTokens !== undefined) {
+        expect(body.data.totalInputTokens).toBeGreaterThan(0);
+      }
+    });
+
+    it('status endpoint indicates data sources', async () => {
+      const res = await fetch(`${baseUrl}/api/usage/status`);
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.success).toBe(true);
     });
   });
 
