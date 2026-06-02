@@ -281,14 +281,13 @@ describe('analytics-only runtime', () => {
       expect(res.status).toBe(404);
     });
 
-    it('/ws is not available (connection refused or not found)', async () => {
-      try {
-        await fetch(`${baseUrl}/ws`);
-        // If it somehow connects, should 404
-        expect(fetch(`${baseUrl}/ws`)).not.toBeNull();
-      } catch {
-        // Expected: WebSocket may not be handled at all
-      }
+    it('analytics-only has no WebSocket upgrade on /ws', async () => {
+      // Analytics-only runtime does not mount a WebSocket server.
+      // /ws falls through to the SPA fallback which serves the analytics HTML.
+      const res = await fetch(`${baseUrl}/ws`);
+      const upgradeHeader = res.headers.get('upgrade');
+      // Should NOT be a WebSocket upgrade (101 Switching Protocols)
+      expect(upgradeHeader?.toLowerCase()).not.toBe('websocket');
     });
   });
 
