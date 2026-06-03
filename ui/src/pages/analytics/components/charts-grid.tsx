@@ -8,12 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UsageTrendChart } from '@/components/analytics/usage-trend-chart';
 import { ModelBreakdownChart } from '@/components/analytics/model-breakdown-chart';
 import { SessionStatsCard } from '@/components/analytics/session-stats-card';
-import { CliproxyStatsCard } from '@/components/analytics/cliproxy-stats-card';
+import { CostLeverageCard } from '@/components/analytics/cost-leverage-card';
 import { TrendingUp, PieChart } from 'lucide-react';
 import { usePrivacy } from '@/contexts/privacy-context';
 import { CostByModelCard } from './cost-by-model-card';
+import { useTranslation } from 'react-i18next';
 import type { ModelUsage, PaginatedSessions, DailyUsage, HourlyUsage } from '@/hooks/use-usage';
-// TODO i18n: import { useTranslation } from 'react-i18next'; when keys are ready
 
 interface ChartsGridProps {
   viewMode: 'daily' | 'hourly';
@@ -43,8 +43,7 @@ export function ChartsGrid({
   onModelClick,
 }: ChartsGridProps) {
   const { privacyMode } = usePrivacy();
-  // TODO i18n: uncomment when keys for "Last 24 Hours" / "Usage Trends" / "Model Usage" are added
-  // const { t } = useTranslation();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-0 grid gap-4 lg:grid-rows-[minmax(260px,1.2fr)_minmax(220px,0.9fr)]">
@@ -53,8 +52,9 @@ export function ChartsGrid({
         <CardHeader className="px-3 py-2 shrink-0">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
-            {/* TODO i18n: missing keys for "Last 24 Hours" / "Usage Trends" */}
-            {viewMode === 'hourly' ? 'Last 24 Hours' : 'Usage Trends'}
+            {viewMode === 'hourly'
+              ? t('analyticsCharts.last24Hours')
+              : t('analyticsCharts.usageTrends')}
           </CardTitle>
         </CardHeader>
         <CardContent className="px-3 pb-3 pt-0 flex-1 min-h-0">
@@ -81,8 +81,7 @@ export function ChartsGrid({
           <CardHeader className="px-3 py-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <PieChart className="w-4 h-4" />
-              {/* TODO i18n: missing key for "Model Usage" */}
-              Model Usage
+              {t('analyticsCharts.modelUsage')}
             </CardTitle>
           </CardHeader>
           <CardContent className="px-2 pb-2 pt-0 flex-1 min-h-0 flex items-center justify-center">
@@ -97,8 +96,8 @@ export function ChartsGrid({
         {/* Session Stats */}
         <SessionStatsCard data={sessions} isLoading={isSessionsLoading} className="lg:col-span-2" />
 
-        {/* CLIProxy Stats */}
-        <CliproxyStatsCard isLoading={isSummaryLoading} className="lg:col-span-2" />
+        {/* Cost Leverage */}
+        <CostLeverageCard isLoading={isSummaryLoading} className="lg:col-span-2" />
       </div>
     </div>
   );
