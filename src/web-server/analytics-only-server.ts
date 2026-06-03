@@ -9,7 +9,6 @@
 import express from 'express';
 import http from 'http';
 import path from 'path';
-import multer from 'multer';
 import { usageRoutes } from './usage';
 import { shutdownUsageAggregator } from './usage/aggregator';
 import { createLogger } from '../services/logging';
@@ -41,26 +40,12 @@ export async function startAnalyticsServer(
   const app = express();
   const server = http.createServer(app);
 
-  // JSON body parsing with error handler for malformed JSON
-  app.use(express.json());
+  // JSON body parsing
   app.use(
     express.json({
       type: ['application/json', 'application/cloudevents+json'],
     })
   );
-
-  // Multipart middleware for cursor CSV upload
-  const analyticsUpload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 },
-  });
-  app.use((req, _res, next) => {
-    if (req.method === 'POST' && req.path.startsWith('/api/usage/cursor/import')) {
-      analyticsUpload.single('file')(req, _res, next);
-    } else {
-      next();
-    }
-  });
 
   // Health check
   app.get('/api/health', (_req, res) => {

@@ -21,7 +21,7 @@ const CONTRACT_ENDPOINTS = [
   { method: 'POST', path: '/api/usage/refresh' },
   { method: 'GET', path: '/api/usage/cursor/status' },
   { method: 'POST', path: '/api/usage/cursor/import' },
-  { method: 'DELETE', path: '/api/usage/cursor/data' },
+  { method: 'POST', path: '/api/usage/cursor/clear' },
 ];
 
 /**
@@ -52,7 +52,7 @@ describe('analytics API contract', () => {
       expect.arrayContaining([
         expect.objectContaining({ path: '/api/usage/cursor/status' }),
         expect.objectContaining({ path: '/api/usage/cursor/import' }),
-        expect.objectContaining({ path: '/api/usage/cursor/data' }),
+        expect.objectContaining({ path: '/api/usage/cursor/clear' }),
       ])
     );
   });
