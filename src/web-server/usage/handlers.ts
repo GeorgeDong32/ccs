@@ -16,6 +16,8 @@ import {
   getUsageCacheSize,
   getLastFetchTimestamp,
   refreshUsageCache,
+  triggerAsyncRefresh,
+  getRefreshStatus,
 } from './aggregator';
 import {
   coalesceLegacyProviderlessBreakdowns,
@@ -844,18 +846,28 @@ export async function handleMonthly(
 }
 
 export async function handleRefresh(_req: Request, res: Response): Promise<void> {
-  try {
-    await refreshUsageCache();
-    res.json({ success: true, message: 'Usage cache refreshed' });
-  } catch (error) {
-    errorResponse(res, error, 'Failed to refresh usage cache');
-  }
+  const started = triggerAsyncRefresh();
+  res.json({
+    success: true,
+    message: started ? 'Refresh started' : 'Refresh already in progress',
+    async: true,
+    refreshing: !started,
+  });
+}
+
+export function handleRefreshStatus(_req: Request, res: Response): void {
+  const status = getRefreshStatus();
+  res.json({ success: true, data: status });
 }
 
 export function handleStatus(_req: Request, res: Response): void {
   res.json({
     success: true,
-    data: { lastFetch: getLastFetchTimestamp(), cacheSize: getUsageCacheSize() },
+    data: {
+      lastFetch: getLastFetchTimestamp(),
+      cacheSize: getUsageCacheSize(),
+      ...getRefreshStatus(),
+    },
   });
 }
 

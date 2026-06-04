@@ -18,6 +18,7 @@ import {
   handleSessions,
   handleMonthly,
   handleRefresh,
+  handleRefreshStatus,
   handleStatus,
   handleInsights,
   handleCursorImport,
@@ -67,8 +68,11 @@ usageRoutes.get('/sessions', handleSessions);
 // Monthly usage endpoint
 usageRoutes.get('/monthly', handleMonthly);
 
-// Cache refresh endpoint
+// Cache refresh endpoint (async — returns immediately)
 usageRoutes.post('/refresh', handleRefresh);
+
+// Refresh status polling endpoint
+usageRoutes.get('/refresh-status', handleRefreshStatus);
 
 // Status endpoint
 usageRoutes.get('/status', handleStatus);

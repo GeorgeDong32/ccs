@@ -50,7 +50,9 @@ export function ChartsGrid({
         <CardHeader className="px-3 py-2 shrink-0">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
-            {viewMode === 'hourly' ? t('analyticsPages.last24Hours') : t('analyticsPages.usageTrends')}
+            {viewMode === 'hourly'
+              ? t('analyticsPages.last24Hours')
+              : t('analyticsPages.usageTrends')}
           </CardTitle>
         </CardHeader>
         <CardContent className="px-3 pb-3 pt-0 flex-1 min-h-0">

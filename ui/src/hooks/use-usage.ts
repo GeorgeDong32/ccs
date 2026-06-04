@@ -220,7 +220,7 @@ export const usageApi = {
     appendProfileParam(params, options);
     return request<MonthlyUsage[]>(buildUsageUrl('/usage/monthly', params));
   },
-  /** Clear server-side usage cache and force fresh data fetch */
+  /** Trigger async usage refresh and poll for completion */
   refresh: async (): Promise<void> => {
     const res = await fetch(`${BASE_URL}/usage/refresh`, {
       method: 'POST',
@@ -229,6 +229,22 @@ export const usageApi = {
     if (!res.ok) {
       throw new Error('Failed to refresh usage cache');
     }
+    // Poll for completion — backend now runs refresh asynchronously
+    const POLL_INTERVAL = 1500;
+    const POLL_TIMEOUT = 30000;
+    const startTime = Date.now();
+    while (Date.now() - startTime < POLL_TIMEOUT) {
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL));
+      try {
+        const statusRes = await fetch(`${BASE_URL}/usage/refresh-status`);
+        if (!statusRes.ok) continue;
+        const statusJson = await statusRes.json();
+        if (!statusJson.data?.refreshing) return;
+      } catch {
+        // Retry on network errors
+      }
+    }
+    // Timeout reached — data may still be refreshing, but we stop blocking UI
   },
   /** Get cache status including last fetch timestamp */
   status: () => request<UsageStatus>('/usage/status'),

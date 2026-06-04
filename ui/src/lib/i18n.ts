@@ -2260,7 +2260,8 @@ const resources = {
         cacheWrite: 'Cache Write',
         cacheRead: 'Cache Read',
         allTokens: 'All Tokens',
-        extendedThinkingHint: 'Extended thinking or large context loading. Expected for reasoning models.',
+        extendedThinkingHint:
+          'Extended thinking or large context loading. Expected for reasoning models.',
         analysisTaskHint: 'More input than output. Typical for analysis tasks.',
         generationHeavyHint: 'More output than input. Generation-heavy workload.',
         allProfiles: 'All profiles',
@@ -7558,7 +7559,8 @@ const resources = {
         cacheWrite: 'Cache Write',
         cacheRead: 'Cache Read',
         allTokens: 'All Tokens',
-        extendedThinkingHint: 'Extended thinking or large context loading. Expected for reasoning models.',
+        extendedThinkingHint:
+          'Extended thinking or large context loading. Expected for reasoning models.',
         analysisTaskHint: 'More input than output. Typical for analysis tasks.',
         generationHeavyHint: 'More output than input. Generation-heavy workload.',
         allProfiles: 'All profiles',
@@ -9677,7 +9679,8 @@ const resources = {
         cacheWrite: 'Cache Write',
         cacheRead: 'Cache Read',
         allTokens: 'All Tokens',
-        extendedThinkingHint: 'Extended thinking or large context loading. Expected for reasoning models.',
+        extendedThinkingHint:
+          'Extended thinking or large context loading. Expected for reasoning models.',
         analysisTaskHint: 'More input than output. Typical for analysis tasks.',
         generationHeavyHint: 'More output than input. Generation-heavy workload.',
         allProfiles: 'All profiles',
@@ -12996,7 +12999,8 @@ const resources = {
         cacheWrite: 'Cache Write',
         cacheRead: 'Cache Read',
         allTokens: 'All Tokens',
-        extendedThinkingHint: 'Extended thinking or large context loading. Expected for reasoning models.',
+        extendedThinkingHint:
+          'Extended thinking or large context loading. Expected for reasoning models.',
         analysisTaskHint: 'More input than output. Typical for analysis tasks.',
         generationHeavyHint: 'More output than input. Generation-heavy workload.',
         allProfiles: 'All profiles',

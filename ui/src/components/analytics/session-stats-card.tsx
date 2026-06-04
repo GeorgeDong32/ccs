@@ -85,8 +85,7 @@ export function SessionStatsCard({ data, isLoading, className }: SessionStatsCar
       <CardHeader className="px-3 py-2">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <Terminal className="w-4 h-4" />
-          {/* TODO i18n: missing key for "Session Stats" */}
-          Session Stats
+          {t('analyticsCards.sessionStats')}
         </CardTitle>
       </CardHeader>
       <CardContent className="px-3 pb-3 pt-0 flex-1 min-h-0 flex flex-col gap-3">
@@ -99,7 +98,9 @@ export function SessionStatsCard({ data, isLoading, className }: SessionStatsCar
               <span className="text-xl font-bold">{stats.displayedSessions}</span>
             </div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
-              {stats.hasPartialSample ? t('analyticsCards.sampledSessions') : t('analyticsCards.totalSessions')}
+              {stats.hasPartialSample
+                ? t('analyticsCards.sampledSessions')
+                : t('analyticsCards.totalSessions')}
             </p>
             {stats.hasPartialSample && (
               <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -117,7 +118,9 @@ export function SessionStatsCard({ data, isLoading, className }: SessionStatsCar
               </span>
             </div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
-              {stats.hasPartialSample ? t('analyticsCards.recentAvgCost') : t('analyticsCards.avgCostPerSession')}
+              {stats.hasPartialSample
+                ? t('analyticsCards.recentAvgCost')
+                : t('analyticsCards.avgCostPerSession')}
             </p>
           </div>
         </div>

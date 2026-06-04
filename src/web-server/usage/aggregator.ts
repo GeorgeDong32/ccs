@@ -480,6 +480,7 @@ let diskCacheInitialized = false;
 
 // Track if background refresh is in progress
 let isRefreshing = false;
+let refreshStartedAt: number | null = null;
 
 // Coalesced full refresh promise shared across all usage loaders
 let pendingFullRefresh: Promise<{
@@ -886,7 +887,33 @@ export function shutdownUsageAggregator(): void {
  * Used by manual refresh endpoint.
  */
 export async function refreshUsageCache(): Promise<void> {
-  // Ensure periodic sync is running for subsequent updates.
   startCliproxySync();
   await refreshFromSourceCoalesced(true);
+}
+
+/**
+ * Trigger async refresh without blocking.
+ * Subsequent queries will pick up new data once refresh completes.
+ */
+export function triggerAsyncRefresh(): boolean {
+  if (pendingFullRefresh) return false; // already refreshing
+  startCliproxySync();
+  refreshStartedAt = Date.now();
+  pendingFullRefresh = refreshFromSource().finally(() => {
+    pendingFullRefresh = null;
+    refreshStartedAt = null;
+  });
+  // Swallow errors in background refresh
+  pendingFullRefresh.catch(() => {});
+  return true;
+}
+
+/**
+ * Check whether a refresh is currently in progress.
+ */
+export function getRefreshStatus(): { refreshing: boolean; startedAt: number | null } {
+  return {
+    refreshing: pendingFullRefresh !== null,
+    startedAt: refreshStartedAt,
+  };
 }

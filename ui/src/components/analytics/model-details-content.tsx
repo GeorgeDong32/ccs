@@ -14,7 +14,8 @@ export function ModelDetailsContent({ model }: ModelDetailsContentProps) {
   const { t } = useTranslation();
   const ioRatioStatus = getIoRatioStatus(model.ioRatio, t);
   const cacheTokens = model.cacheCreationTokens + model.cacheReadTokens;
-  const totalTokensLabel = cacheTokens > 0 ? t('analyticsCards.allTokens') : t('analyticsCards.totalTokens');
+  const totalTokensLabel =
+    cacheTokens > 0 ? t('analyticsCards.allTokens') : t('analyticsCards.totalTokens');
   const cacheHitRate =
     model.cacheReadTokens > 0
       ? (model.cacheReadTokens / (model.inputTokens + model.cacheReadTokens)) * 100
