@@ -55,6 +55,34 @@ export async function startAnalyticsServer(
   // Usage API routes
   app.use('/api/usage', usageRoutes);
 
+  // Minimal /api/config endpoints — supports cost-leverage card baseline storage.
+  // GET returns full unified config; PUT accepts { version, preferences } and
+  // only updates the preferences field (preserves all other config).
+  app.get('/api/config', (_req, res) => {
+    try {
+      const { loadOrCreateUnifiedConfig } = require('../config/config-loader-facade');
+      const config = loadOrCreateUnifiedConfig();
+      res.json({ success: true, data: config });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
+  app.put('/api/config', (req, res) => {
+    try {
+      const { loadOrCreateUnifiedConfig, saveUnifiedConfig } = require('../config/config-loader-facade');
+      const body = req.body as { version?: number; preferences?: Record<string, unknown> };
+      const config = loadOrCreateUnifiedConfig();
+      if (body.preferences !== undefined) {
+        config.preferences = { ...(config.preferences || {}), ...body.preferences };
+      }
+      saveUnifiedConfig(config);
+      res.json({ success: true, data: config });
+    } catch (err) {
+      res.status(500).json({ success: false, error: (err as Error).message });
+    }
+  });
+
   // Serve the analytics frontend shell
   const staticDir = options.staticDir || path.resolve(__dirname, '../../dist/ui');
   // Non-usage API routes return 404
