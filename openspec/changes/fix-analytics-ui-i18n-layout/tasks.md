@@ -20,4 +20,4 @@
 - [x] 4.1 `cd ui && bun run format:check && bun run typecheck`
 - [x] 4.2 `cd ui && bun run build` — verify analytics HTML builds
 - [x] 4.3 Run `node ../scripts/check-analytics-imports.js ../dist/ui/assets` — no forbidden imports
-- [ ] 4.4 Start server, verify: Chinese text renders, Cost Leverage card shows, page fits one screen
+- [x] 4.4 Start server, verify: Chinese text renders, Cost Leverage card shows, page fits one screen

@@ -129,6 +129,14 @@ export function CostLeverageCard({ className, isLoading: externalLoading }: Cost
                 inputError && 'border-destructive focus-visible:ring-destructive'
               )}
             />
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="h-7 px-2 text-xs rounded-md border bg-background hover:bg-accent disabled:opacity-50"
+            >
+              {isSaving ? t('analyticsCostLeverage.saving') : 'Save'}
+            </button>
             {isSaving && (
               <span className="text-[10px] text-muted-foreground animate-pulse">
                 {t('analyticsCostLeverage.saving')}

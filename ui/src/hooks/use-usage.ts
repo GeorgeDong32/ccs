@@ -3,7 +3,7 @@
  * Phase 01: Analytics Page Implementation
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 // Types
@@ -292,6 +292,7 @@ export function useUsageSummary(options?: UsageQueryOptions) {
     queryKey: ['usage', 'summary', options],
     queryFn: () => usageApi.summary(options),
     staleTime: 60 * 1000, // 1 minute
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -300,6 +301,7 @@ export function useUsageTrends(options?: UsageQueryOptions) {
     queryKey: ['usage', 'trends', options],
     queryFn: () => usageApi.trends(options),
     staleTime: 60 * 1000, // 1 minute
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -308,6 +310,7 @@ export function useHourlyUsage(options?: UsageQueryOptions) {
     queryKey: ['usage', 'hourly', options],
     queryFn: () => usageApi.hourly(options),
     staleTime: 60 * 1000, // 1 minute
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -316,6 +319,7 @@ export function useModelUsage(options?: UsageQueryOptions) {
     queryKey: ['usage', 'models', options],
     queryFn: () => usageApi.models(options),
     staleTime: 60 * 1000, // 1 minute
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -358,6 +362,7 @@ export function useUsageInsights(options?: UsageQueryOptions) {
     queryKey: ['usage', 'insights', options],
     queryFn: () => usageApi.insights(options),
     staleTime: 60 * 1000, // 1 minute
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -366,5 +371,6 @@ export function useSessions(options?: UsageQueryOptions) {
     queryKey: ['usage', 'sessions', options],
     queryFn: () => usageApi.sessions(options),
     staleTime: 60 * 1000, // 1 minute
+    placeholderData: keepPreviousData,
   });
 }
