@@ -70,13 +70,13 @@ export async function startAnalyticsServer(
 
   app.put('/api/config', (req, res) => {
     try {
-      const { loadOrCreateUnifiedConfig, saveUnifiedConfig } = require('../config/config-loader-facade');
+      const { loadOrCreateUnifiedConfig, saveConfig } = require('../config/config-loader-facade');
       const body = req.body as { version?: number; preferences?: Record<string, unknown> };
       const config = loadOrCreateUnifiedConfig();
       if (body.preferences !== undefined) {
         config.preferences = { ...(config.preferences || {}), ...body.preferences };
       }
-      saveUnifiedConfig(config);
+      saveConfig(config);
       res.json({ success: true, data: config });
     } catch (err) {
       res.status(500).json({ success: false, error: (err as Error).message });
