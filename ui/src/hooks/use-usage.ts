@@ -263,7 +263,7 @@ export const usageApi = {
   },
   /** Clear stored Cursor data */
   cursorDataClear: async (): Promise<{ message: string; eventsRemoved: number }> => {
-    const response = await fetch('/api/usage/cursor/data', { method: 'DELETE' });
+    const response = await fetch('/api/usage/cursor/clear', { method: 'POST' });
     if (!response.ok) throw new Error('Failed to clear Cursor data');
     const result = await response.json();
     return result.data;

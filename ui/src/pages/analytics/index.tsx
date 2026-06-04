@@ -72,7 +72,6 @@ export function AnalyticsPage() {
         isHourlyLoading={isHourlyLoading}
         isModelsLoading={isModelsLoading}
         isSessionsLoading={isSessionsLoading}
-        isSummaryLoading={isSummaryLoading}
         onModelClick={handleModelClick}
       />
 

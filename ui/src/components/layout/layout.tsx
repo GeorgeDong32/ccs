@@ -13,8 +13,6 @@ import { ProjectSelectionDialog } from '@/components/shared/project-selection-di
 import { DeviceCodeDialog } from '@/components/shared/device-code-dialog';
 import { UserMenu } from '@/components/auth/user-menu';
 import { LanguageSwitcher } from './language-switcher';
-import { ClaudeKitBadge } from '@/components/shared/claudekit-badge';
-import { SponsorButton } from '@/components/shared/sponsor-button';
 import { useProjectSelection } from '@/hooks/use-project-selection';
 import { useDeviceCode } from '@/hooks/use-device-code';
 import { storeLastRoute } from '@/lib/last-route';
@@ -42,10 +40,7 @@ export function Layout() {
       <AppSidebar />
       <main className="flex-1 flex flex-col min-h-0 overflow-hidden bg-background">
         <header className="flex h-14 items-center justify-between px-6 border-b shrink-0 bg-background shadow-sm z-20">
-          <div className="flex items-center gap-3">
-            <ClaudeKitBadge />
-            <SponsorButton />
-          </div>
+          <div className="flex items-center gap-3" />
           <div className="flex items-center gap-2">
             <ConnectionIndicator />
             <LanguageSwitcher />

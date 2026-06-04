@@ -12,9 +12,9 @@ interface ModelDetailsContentProps {
 export function ModelDetailsContent({ model }: ModelDetailsContentProps) {
   const { privacyMode } = usePrivacy();
   const { t } = useTranslation();
-  const ioRatioStatus = getIoRatioStatus(model.ioRatio);
+  const ioRatioStatus = getIoRatioStatus(model.ioRatio, t);
   const cacheTokens = model.cacheCreationTokens + model.cacheReadTokens;
-  const totalTokensLabel = cacheTokens > 0 ? 'All Tokens' : t('analyticsCards.totalTokens');
+  const totalTokensLabel = cacheTokens > 0 ? t('analyticsCards.allTokens') : t('analyticsCards.totalTokens');
   const cacheHitRate =
     model.cacheReadTokens > 0
       ? (model.cacheReadTokens / (model.inputTokens + model.cacheReadTokens)) * 100
@@ -70,33 +70,32 @@ export function ModelDetailsContent({ model }: ModelDetailsContentProps) {
       <div className="space-y-2">
         <h5 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
           {/* TODO i18n: missing key for "Token Breakdown" */}
-          Token Breakdown
+          {t('analyticsCards.tokenBreakdown')}
         </h5>
         <div className={cn('space-y-1', privacyMode && PRIVACY_BLUR_CLASS)}>
-          {/* TODO i18n: missing keys for Input/Output/Cache Write/Cache Read labels */}
           <TokenRow
-            label="Input"
+            label={t('analyticsCards.input')}
             tokens={model.inputTokens}
             cost={model.costBreakdown.input.cost}
             color="#335c67"
             icon={ArrowDownRight}
           />
           <TokenRow
-            label="Output"
+            label={t('analyticsCards.output')}
             tokens={model.outputTokens}
             cost={model.costBreakdown.output.cost}
             color="#fff3b0"
             icon={ArrowUpRight}
           />
           <TokenRow
-            label="Cache Write"
+            label={t('analyticsCards.cacheWrite')}
             tokens={model.cacheCreationTokens}
             cost={model.costBreakdown.cacheCreation.cost}
             color="#e09f3e"
             icon={Database}
           />
           <TokenRow
-            label="Cache Read"
+            label={t('analyticsCards.cacheRead')}
             tokens={model.cacheReadTokens}
             cost={model.costBreakdown.cacheRead.cost}
             color="#9e2a2b"
@@ -153,31 +152,34 @@ function getCacheHitStatus(rate: number): 'success' | 'secondary' | 'outline' {
   return 'outline';
 }
 
-function getIoRatioStatus(ratio: number): {
+function getIoRatioStatus(
+  ratio: number,
+  t: (key: string) => string
+): {
   variant: 'default' | 'secondary' | 'destructive' | 'outline';
   description: string;
 } {
   if (ratio >= 200) {
     return {
       variant: 'destructive',
-      description: 'Extended thinking or large context loading. Expected for reasoning models.',
+      description: t('analyticsCards.extendedThinkingHint'),
     };
   }
   if (ratio >= 50) {
     return {
       variant: 'secondary',
-      description: 'More input than output. Typical for analysis tasks.',
+      description: t('analyticsCards.analysisTaskHint'),
     };
   }
   if (ratio >= 5) {
     return {
       variant: 'outline',
-      description: 'Balanced input/output ratio for typical coding tasks.',
+      description: t('analyticsCards.balancedRatioHint'),
     };
   }
   return {
     variant: 'default',
-    description: 'More output than input. Generation-heavy workload.',
+    description: t('analyticsCards.generationHeavyHint'),
   };
 }
 

@@ -95,7 +95,7 @@ export function DataImportDialog() {
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium">
               <FileText className="w-4 h-4" />
-              Cursor IDE
+              {t('cursorIde')}
             </div>
 
             {/* Hidden file input */}

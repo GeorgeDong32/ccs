@@ -17,6 +17,7 @@ import {
   useSessions,
   type ModelUsage,
 } from '@/hooks/use-usage';
+import { useTranslation } from 'react-i18next';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useProfiles } from '@/hooks/use-profiles';
 
@@ -58,6 +59,7 @@ export function useAnalyticsPage() {
   const [selectedProfile, setSelectedProfileState] = useState(readPersistedProfile);
   const [popoverPosition, setPopoverPosition] = useState<{ x: number; y: number } | null>(null);
   const [viewMode, setViewMode] = useState<'daily' | 'hourly'>('daily');
+  const { t } = useTranslation();
   const { data: accountsView } = useAccounts();
   const { data: apiProfiles } = useProfiles();
 
@@ -88,14 +90,14 @@ export function useAnalyticsPage() {
     const options: AnalyticsProfileOption[] = [
       {
         value: ALL_PROFILES_VALUE,
-        label: 'All profiles',
-        description: 'Includes all analytics sources.',
+        label: t('analyticsCards.allProfiles'),
+        description: t('analyticsCards.allProfilesDesc'),
         supported: true,
       },
       {
         value: 'default',
-        label: 'Default Claude',
-        description: 'Profile-scoped Claude JSONL data.',
+        label: t('analyticsCards.defaultClaude'),
+        description: t('analyticsCards.defaultClaudeDesc'),
         supported: true,
       },
       ...Array.from(accountNames)

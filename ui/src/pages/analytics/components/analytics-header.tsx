@@ -55,15 +55,17 @@ export function AnalyticsHeader({
       </div>
       <div className="flex flex-wrap items-center gap-2 xl:justify-end">
         <Select value={selectedProfile} onValueChange={onProfileChange}>
-          <SelectTrigger className="h-8 w-[190px]" aria-label="Analytics profile">
-            <SelectValue placeholder="All profiles" />
+          <SelectTrigger className="h-8 w-[200px] min-w-0" aria-label={t('analyticsCards.allProfiles')}>
+            <SelectValue placeholder={t('analyticsCards.allProfiles')}>
+              {profileOptions.find((o) => o.value === selectedProfile)?.label}
+            </SelectValue>
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="min-w-[260px]">
             {profileOptions.map((option) => (
               <SelectItem key={option.value} value={option.value} disabled={!option.supported}>
-                <span className="flex flex-col">
-                  <span>{option.label}</span>
-                  <span className="text-xs text-muted-foreground">{option.description}</span>
+                <span className="flex flex-col gap-0.5 py-0.5">
+                  <span className="font-medium text-sm">{option.label}</span>
+                  <span className="text-xs text-muted-foreground leading-tight">{option.description}</span>
                 </span>
               </SelectItem>
             ))}
