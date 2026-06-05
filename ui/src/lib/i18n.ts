@@ -1077,6 +1077,7 @@ const resources = {
       analyticsModelDetail: {
         percentUsage: '{{percent}}% usage',
         ioRatio: '{{ratio}}:1 I/O',
+        cacheHitRate: '{{rate}}% cache',
         totalCost: 'Total Cost',
         totalTokens: 'Total Tokens',
         tokenBreakdown: 'Token Breakdown',
@@ -2463,6 +2464,7 @@ const resources = {
       analyticsModelDetail: {
         percentUsage: '{{percent}}% 使用率',
         ioRatio: '{{ratio}}:1 输入/输出',
+        cacheHitRate: '{{rate}}% 缓存',
         totalCost: '总成本',
         totalTokens: '总 Token 数',
         tokenBreakdown: 'Token 分解',
@@ -3913,6 +3915,7 @@ const resources = {
       analyticsModelDetail: {
         percentUsage: '{{percent}}% sử dụng',
         ioRatio: '{{ratio}}:1 I/O',
+        cacheHitRate: '{{rate}}% cache',
         totalCost: 'Tổng chi phí',
         totalTokens: 'Tổng token',
         tokenBreakdown: 'Phân tích token',
@@ -5381,6 +5384,7 @@ const resources = {
       analyticsModelDetail: {
         percentUsage: '{{percent}}% 使用率',
         ioRatio: '{{ratio}}:1 I/O',
+        cacheHitRate: '{{rate}}% 缓存',
         totalCost: '总成本',
         totalTokens: '总 Token 数',
         tokenBreakdown: 'Token 分解',

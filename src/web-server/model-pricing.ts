@@ -352,6 +352,19 @@ const PRICING_REGISTRY: Record<string, ModelPricing> = {
     cacheCreationPerMillion: 0.0,
     cacheReadPerMillion: 0.005,
   },
+  // GPT-5.5 ($5/$30)
+  'gpt-5.5': {
+    inputPerMillion: 5.0,
+    outputPerMillion: 30.0,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.5,
+  },
+  'gpt-5.5-pro': {
+    inputPerMillion: 30.0,
+    outputPerMillion: 180.0,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.0,
+  },
   'codex-mini-latest': {
     inputPerMillion: 1.5,
     outputPerMillion: 6.0,
@@ -457,34 +470,52 @@ const PRICING_REGISTRY: Record<string, ModelPricing> = {
     cacheReadPerMillion: 0.2,
   },
   'glm-4.7': {
-    inputPerMillion: 0.4,
-    outputPerMillion: 1.5,
+    inputPerMillion: 0.6,
+    outputPerMillion: 2.2,
     cacheCreationPerMillion: 0.0,
-    cacheReadPerMillion: 0.2,
+    cacheReadPerMillion: 0.11,
+  },
+  'glm-4.7-flashx': {
+    inputPerMillion: 0.07,
+    outputPerMillion: 0.4,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.01,
   },
   'glm-4.6': {
-    inputPerMillion: 0.35,
-    outputPerMillion: 1.5,
+    inputPerMillion: 0.6,
+    outputPerMillion: 2.2,
     cacheCreationPerMillion: 0.0,
-    cacheReadPerMillion: 0.175,
+    cacheReadPerMillion: 0.11,
   },
   'glm-4.6-cc-max': {
-    inputPerMillion: 0.35,
-    outputPerMillion: 1.5,
+    inputPerMillion: 0.6,
+    outputPerMillion: 2.2,
     cacheCreationPerMillion: 0.0,
-    cacheReadPerMillion: 0.175,
+    cacheReadPerMillion: 0.11,
   },
   'glm-4.5': {
-    inputPerMillion: 0.35,
-    outputPerMillion: 1.55,
+    inputPerMillion: 0.6,
+    outputPerMillion: 2.2,
     cacheCreationPerMillion: 0.0,
-    cacheReadPerMillion: 0.175,
+    cacheReadPerMillion: 0.11,
+  },
+  'glm-4.5-x': {
+    inputPerMillion: 2.2,
+    outputPerMillion: 8.9,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.45,
   },
   'glm-4.5-air': {
-    inputPerMillion: 0.13,
-    outputPerMillion: 0.85,
+    inputPerMillion: 0.2,
+    outputPerMillion: 1.1,
     cacheCreationPerMillion: 0.0,
-    cacheReadPerMillion: 0.025,
+    cacheReadPerMillion: 0.03,
+  },
+  'glm-4.5-airx': {
+    inputPerMillion: 1.1,
+    outputPerMillion: 4.5,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.22,
   },
 
   // ---------------------------------------------------------------------------
@@ -595,8 +626,14 @@ const PRICING_REGISTRY: Record<string, ModelPricing> = {
   },
 
   // ---------------------------------------------------------------------------
-  // MiniMax Models - Source: https://platform.minimax.io/docs/pricing/pay-as-you-go
+  // MiniMax Models - Source: https://platform.minimax.io/docs/guides/pricing-paygo
   // ---------------------------------------------------------------------------
+  'MiniMax-M3': {
+    inputPerMillion: 0.6,
+    outputPerMillion: 2.4,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.12,
+  },
   'MiniMax-M2.7': {
     inputPerMillion: 0.3,
     outputPerMillion: 1.2,
@@ -680,25 +717,49 @@ const PRICING_REGISTRY: Record<string, ModelPricing> = {
   },
 
   // ---------------------------------------------------------------------------
-  // DeepSeek Models - Source: better-ccusage
+  // DeepSeek Models - Source: https://api-docs.deepseek.com/quick_start/pricing
+  // Legacy deepseek-chat/reasoner names map into V4 family for compatibility.
   // ---------------------------------------------------------------------------
-  'deepseek-chat': {
-    inputPerMillion: 0.27,
-    outputPerMillion: 1.1,
+  'deepseek-v4-pro': {
+    inputPerMillion: 0.435,
+    outputPerMillion: 0.87,
     cacheCreationPerMillion: 0.0,
-    cacheReadPerMillion: 0.07,
+    cacheReadPerMillion: 0.003625,
   },
-  'deepseek-reasoner': {
-    inputPerMillion: 0.55,
-    outputPerMillion: 2.19,
-    cacheCreationPerMillion: 0.0,
-    cacheReadPerMillion: 0.14,
-  },
-  'deepseek-coder': {
+  'deepseek-v4-flash': {
     inputPerMillion: 0.14,
     outputPerMillion: 0.28,
     cacheCreationPerMillion: 0.0,
-    cacheReadPerMillion: 0.0,
+    cacheReadPerMillion: 0.0028,
+  },
+  'deepseek-chat': {
+    inputPerMillion: 0.14,
+    outputPerMillion: 0.28,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.0028,
+  },
+  'deepseek-reasoner': {
+    inputPerMillion: 0.435,
+    outputPerMillion: 0.87,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.003625,
+  },
+
+  // ---------------------------------------------------------------------------
+  // MiMo Models (Xiaomi) - Source: https://platform.xiaomimimo.com
+  // May 27, 2026 permanent price reduction.
+  // ---------------------------------------------------------------------------
+  'mimo-v2.5-pro': {
+    inputPerMillion: 0.435,
+    outputPerMillion: 0.87,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.0036,
+  },
+  'mimo-v2.5': {
+    inputPerMillion: 0.14,
+    outputPerMillion: 0.28,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.0028,
   },
 
   // ---------------------------------------------------------------------------

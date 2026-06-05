@@ -13,6 +13,10 @@ export function ModelDetailsContent({ model }: ModelDetailsContentProps) {
   const { privacyMode } = usePrivacy();
   const { t } = useTranslation();
   const ioRatioStatus = getIoRatioStatus(model.ioRatio, t);
+  const cacheReadTokens = model.cacheReadTokens || 0;
+  const cacheHitRate =
+    cacheReadTokens > 0 ? (cacheReadTokens / (model.inputTokens + cacheReadTokens)) * 100 : 0;
+  const cacheHitColor = cacheHitRate >= 85 ? '#6ed192' : cacheHitRate >= 50 ? '#f54900' : '#c20000';
 
   return (
     <div className="space-y-4">
@@ -31,6 +35,14 @@ export function ModelDetailsContent({ model }: ModelDetailsContentProps) {
           <Badge variant={ioRatioStatus.variant} className="text-[10px] h-5 px-1.5">
             {t('analyticsModelDetail.ioRatio', { ratio: model.ioRatio.toFixed(0) })}
           </Badge>
+          {cacheReadTokens > 0 && (
+            <Badge
+              className="text-[10px] h-5 px-1.5 text-white"
+              style={{ backgroundColor: cacheHitColor }}
+            >
+              {t('analyticsModelDetail.cacheHitRate', { rate: cacheHitRate.toFixed(0) })}
+            </Badge>
+          )}
         </div>
       </div>
 
