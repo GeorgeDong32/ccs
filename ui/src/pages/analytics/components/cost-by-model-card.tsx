@@ -45,12 +45,12 @@ export function CostByModelCard({
               .map((model) => (
                 <button
                   key={model.model}
-                  className="group flex items-center text-xs w-full hover:bg-muted/50 rounded px-2 py-1.5 transition-colors cursor-pointer gap-3"
+                  className="group flex items-center text-xs w-full hover:bg-muted/50 rounded px-2 py-1.5 transition-colors cursor-pointer gap-2"
                   onClick={(e) => onModelClick(model, e)}
                   title={t('analyticsCostModel.clickForDetails')}
                 >
                   {/* Model name */}
-                  <div className="flex items-center gap-2 min-w-0 w-[180px] shrink-0">
+                  <div className="flex items-center gap-1.5 min-w-0 w-[130px] shrink-0">
                     <div
                       className="w-2 h-2 rounded-full shrink-0"
                       style={{ backgroundColor: getModelColor(model.model) }}

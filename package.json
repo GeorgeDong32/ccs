@@ -1,6 +1,6 @@
 {
   "name": "@georgedong32/ccs",
-  "version": "7.67.4",
+  "version": "7.67.5",
   "description": "Claude Code Switch - Instant profile switching between Claude, GLM, Kimi, and more",
   "keywords": [
     "cli",
