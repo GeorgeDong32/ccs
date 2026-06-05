@@ -220,7 +220,7 @@ export const usageApi = {
     appendProfileParam(params, options);
     return request<MonthlyUsage[]>(buildUsageUrl('/usage/monthly', params));
   },
-  /** Trigger async usage refresh and poll for completion */
+  /** Trigger async usage refresh (fire-and-forget) */
   refresh: async (): Promise<void> => {
     const res = await fetch(`${BASE_URL}/usage/refresh`, {
       method: 'POST',
@@ -229,22 +229,6 @@ export const usageApi = {
     if (!res.ok) {
       throw new Error('Failed to refresh usage cache');
     }
-    // Poll for completion — backend now runs refresh asynchronously
-    const POLL_INTERVAL = 1500;
-    const POLL_TIMEOUT = 30000;
-    const startTime = Date.now();
-    while (Date.now() - startTime < POLL_TIMEOUT) {
-      await new Promise((r) => setTimeout(r, POLL_INTERVAL));
-      try {
-        const statusRes = await fetch(`${BASE_URL}/usage/refresh-status`);
-        if (!statusRes.ok) continue;
-        const statusJson = await statusRes.json();
-        if (!statusJson.data?.refreshing) return;
-      } catch {
-        // Retry on network errors
-      }
-    }
-    // Timeout reached — data may still be refreshing, but we stop blocking UI
   },
   /** Get cache status including last fetch timestamp */
   status: () => request<UsageStatus>('/usage/status'),
@@ -347,10 +331,13 @@ export function useRefreshUsage() {
   const queryClient = useQueryClient();
 
   const refresh = useCallback(async () => {
-    // Clear server-side cache
-    await usageApi.refresh();
-    // Invalidate all usage queries in React Query
+    // Fire async refresh (don't block on completion)
+    usageApi.refresh().catch(() => {});
+    // Invalidate immediately — queries refetch from current cache;
+    // backend refresh completes in background for subsequent requests.
     await queryClient.invalidateQueries({ queryKey: ['usage'] });
+    // Brief pause so the user sees the spinner for at least a moment
+    await new Promise((r) => setTimeout(r, 500));
   }, [queryClient]);
 
   return refresh;
