@@ -3,7 +3,7 @@
  * Phase 01: Analytics Page Implementation
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 // Types
@@ -307,7 +307,8 @@ export function useUsageSummary(options?: UsageQueryOptions) {
   return useQuery({
     queryKey: ['usage', 'summary', options],
     queryFn: () => usageApi.summary(options),
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -315,7 +316,8 @@ export function useUsageTrends(options?: UsageQueryOptions) {
   return useQuery({
     queryKey: ['usage', 'trends', options],
     queryFn: () => usageApi.trends(options),
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -323,7 +325,8 @@ export function useHourlyUsage(options?: UsageQueryOptions) {
   return useQuery({
     queryKey: ['usage', 'hourly', options],
     queryFn: () => usageApi.hourly(options),
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -331,7 +334,8 @@ export function useModelUsage(options?: UsageQueryOptions) {
   return useQuery({
     queryKey: ['usage', 'models', options],
     queryFn: () => usageApi.models(options),
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -373,7 +377,8 @@ export function useUsageInsights(options?: UsageQueryOptions) {
   return useQuery({
     queryKey: ['usage', 'insights', options],
     queryFn: () => usageApi.insights(options),
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -381,6 +386,7 @@ export function useSessions(options?: UsageQueryOptions) {
   return useQuery({
     queryKey: ['usage', 'sessions', options],
     queryFn: () => usageApi.sessions(options),
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 }
