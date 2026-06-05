@@ -34,6 +34,7 @@ export function AnalyticsPage() {
     isTrendsLoading,
     isHourlyLoading,
     isModelsLoading,
+    isModelsFetching,
     isSessionsLoading,
     handleModelClick,
     handleProfileChange,
@@ -71,6 +72,7 @@ export function AnalyticsPage() {
         isTrendsLoading={isTrendsLoading}
         isHourlyLoading={isHourlyLoading}
         isModelsLoading={isModelsLoading}
+        isModelsFetching={isModelsFetching}
         isSessionsLoading={isSessionsLoading}
         onModelClick={handleModelClick}
       />

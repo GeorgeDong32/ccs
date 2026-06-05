@@ -657,8 +657,11 @@ async function refreshFromSourceCoalesced(force = false): Promise<{
     return pendingFullRefresh;
   }
 
+  // Non-forced path: if a refresh is already running, return immediately
+  // with empty data. The pending refresh will populate the cache.
   if (pendingFullRefresh) {
-    return pendingFullRefresh;
+    ensureDiskCacheLoaded();
+    return { daily: [], hourly: [], monthly: [], session: [] };
   }
 
   pendingFullRefresh = refreshFromSource().finally(() => {
@@ -732,6 +735,11 @@ async function getCachedData<T>(key: string, ttl: number, loader: () => Promise<
   if (pending) {
     return pending;
   }
+
+  // If a full refresh is already in progress, don't start another one.
+  // Cache loaders ultimately call refreshFromSourceCoalesced(false) which
+  // will join the existing pendingFullRefresh (non-blocking for cache-path-3).
+  // This path should be rare — only on cold start with no disk cache.
 
   // Create new request
   const promise = loader()

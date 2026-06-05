@@ -6,7 +6,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DollarSign, ChevronRight } from 'lucide-react';
+import { DollarSign, ChevronRight, Loader2 } from 'lucide-react';
 import { getModelColor, cn } from '@/lib/utils';
 import { PRIVACY_BLUR_CLASS } from '@/contexts/privacy-context';
 import { formatTokens } from '../utils';
@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 interface CostByModelCardProps {
   models: ModelUsage[] | undefined;
   isLoading: boolean;
+  isFetching?: boolean;
   onModelClick: (model: ModelUsage, event: React.MouseEvent) => void;
   privacyMode: boolean;
 }
@@ -23,13 +24,21 @@ interface CostByModelCardProps {
 export function CostByModelCard({
   models,
   isLoading,
+  isFetching,
   onModelClick,
   privacyMode,
 }: CostByModelCardProps) {
   const { t } = useTranslation();
 
+  const showFetchingOverlay = isFetching && !isLoading && models && models.length > 0;
+
   return (
-    <Card className="flex flex-col h-full min-h-0 overflow-hidden gap-0 py-0 shadow-sm lg:col-span-4">
+    <Card className="flex flex-col h-full min-h-0 overflow-hidden gap-0 py-0 shadow-sm lg:col-span-4 relative">
+      {showFetchingOverlay && (
+        <div className="absolute inset-0 z-10 bg-background/50 flex items-center justify-center rounded-xl">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        </div>
+      )}
       <CardHeader className="px-3 py-2">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <DollarSign className="w-4 h-4" />

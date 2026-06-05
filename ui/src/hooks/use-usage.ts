@@ -225,6 +225,7 @@ export const usageApi = {
     const res = await fetch(`${BASE_URL}/usage/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) {
       throw new Error('Failed to refresh usage cache');
@@ -275,6 +276,7 @@ async function request<T>(url: string): Promise<T> {
   const BASE_URL = '/api';
   const res = await fetch(`${BASE_URL}${url}`, {
     headers: { 'Content-Type': 'application/json' },
+    signal: AbortSignal.timeout(15000),
   });
 
   if (!res.ok) {

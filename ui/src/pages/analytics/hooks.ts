@@ -68,9 +68,12 @@ export function useAnalyticsPage() {
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
+    // Safety: force-stop spinner after 10s even if refresh hangs
+    const safety = setTimeout(() => setIsRefreshing(false), 10000);
     try {
       await refreshUsage();
     } finally {
+      clearTimeout(safety);
       setIsRefreshing(false);
     }
   }, [refreshUsage]);
@@ -127,7 +130,11 @@ export function useAnalyticsPage() {
   const { data: summary, isLoading: isSummaryLoading } = useUsageSummary(apiOptions);
   const { data: trends, isLoading: isTrendsLoading } = useUsageTrends(apiOptions);
   const { data: hourlyData, isLoading: isHourlyLoading } = useHourlyUsage(apiOptions);
-  const { data: models, isLoading: isModelsLoading } = useModelUsage(apiOptions);
+  const {
+    data: models,
+    isLoading: isModelsLoading,
+    isFetching: isModelsFetching,
+  } = useModelUsage(apiOptions);
   const { data: sessions, isLoading: isSessionsLoading } = useSessions({
     ...apiOptions,
     limit: RECENT_SESSION_SAMPLE_LIMIT,
@@ -192,6 +199,7 @@ export function useAnalyticsPage() {
     isTrendsLoading,
     isHourlyLoading,
     isModelsLoading,
+    isModelsFetching,
     isSessionsLoading,
     // Combined loading
     isLoading: isSummaryLoading || isTrendsLoading || isModelsLoading || isSessionsLoading,

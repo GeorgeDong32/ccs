@@ -25,6 +25,7 @@ interface ChartsGridProps {
   isHourlyLoading: boolean;
   isModelsLoading: boolean;
   isSessionsLoading: boolean;
+  isModelsFetching: boolean;
   onModelClick: (model: ModelUsage, event: React.MouseEvent) => void;
 }
 
@@ -38,6 +39,7 @@ export function ChartsGrid({
   isHourlyLoading,
   isModelsLoading,
   isSessionsLoading,
+  isModelsFetching,
   onModelClick,
 }: ChartsGridProps) {
   const { privacyMode } = usePrivacy();
@@ -70,6 +72,7 @@ export function ChartsGrid({
         <CostByModelCard
           models={models}
           isLoading={isModelsLoading}
+          isFetching={isModelsFetching}
           onModelClick={onModelClick}
           privacyMode={privacyMode}
         />
