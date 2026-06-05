@@ -61,14 +61,17 @@ export function CostByModelCard({
                   </div>
                   {/* Cost breakdown mini-bar */}
                   <CostBreakdownBar model={model} />
-                  {/* Token count */}
+                  {/* Token count: I/O tokens / I/O + cache tokens */}
                   <span
                     className={cn(
-                      'text-[10px] text-muted-foreground w-14 text-right shrink-0',
+                      'text-[10px] text-muted-foreground w-[72px] text-right shrink-0 font-mono',
                       privacyMode && PRIVACY_BLUR_CLASS
                     )}
+                    title={`${formatTokens(model.tokens)} / ${formatTokens(model.tokens + model.cacheTokens)}`}
                   >
                     {formatTokens(model.tokens)}
+                    <span className="text-muted-foreground/50">/</span>
+                    {formatTokens(model.tokens + model.cacheTokens)}
                   </span>
                   {/* Total cost */}
                   <span
