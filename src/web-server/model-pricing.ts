@@ -528,6 +528,12 @@ const PRICING_REGISTRY: Record<string, ModelPricing> = {
     cacheCreationPerMillion: 0.0,
     cacheReadPerMillion: 0.1,
   },
+  'kimi-k2.6': {
+    inputPerMillion: 0.95,
+    outputPerMillion: 4.0,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.16,
+  },
   'kimi-for-coding': {
     inputPerMillion: 0.6,
     outputPerMillion: 2.5,
@@ -631,20 +637,20 @@ const PRICING_REGISTRY: Record<string, ModelPricing> = {
   'MiniMax-M3': {
     inputPerMillion: 0.6,
     outputPerMillion: 2.4,
-    cacheCreationPerMillion: 0.0,
+    cacheCreationPerMillion: 0.75,
     cacheReadPerMillion: 0.12,
   },
   'MiniMax-M2.7': {
     inputPerMillion: 0.3,
     outputPerMillion: 1.2,
-    cacheCreationPerMillion: 0.0,
+    cacheCreationPerMillion: 0.375,
     cacheReadPerMillion: 0.06,
   },
   'MiniMax-M2.5': {
     inputPerMillion: 0.3,
     outputPerMillion: 1.2,
     cacheCreationPerMillion: 0.375,
-    cacheReadPerMillion: 0.03,
+    cacheReadPerMillion: 0.06,
   },
   'MiniMax-M2.5-lightning': {
     inputPerMillion: 0.6,
@@ -715,16 +721,36 @@ const PRICING_REGISTRY: Record<string, ModelPricing> = {
     cacheCreationPerMillion: 0.3,
     cacheReadPerMillion: 0.06,
   },
+  // TODO: Qwen Plus models have tiered pricing at 256K context boundary;
+  // only the ≤256K tier is registered. >256K usage falls through to fallback.
+  'qwen3.7-max': {
+    inputPerMillion: 2.5,
+    outputPerMillion: 7.5,
+    cacheCreationPerMillion: 3.125,
+    cacheReadPerMillion: 0.5,
+  },
+  'qwen3.7-plus': {
+    inputPerMillion: 0.4,
+    outputPerMillion: 1.6,
+    cacheCreationPerMillion: 0.5,
+    cacheReadPerMillion: 0.04,
+  },
+  'qwen3.6-plus': {
+    inputPerMillion: 0.5,
+    outputPerMillion: 3.0,
+    cacheCreationPerMillion: 0.625,
+    cacheReadPerMillion: 0.05,
+  },
 
   // ---------------------------------------------------------------------------
   // DeepSeek Models - Source: https://api-docs.deepseek.com/quick_start/pricing
   // Legacy deepseek-chat/reasoner names map into V4 family for compatibility.
   // ---------------------------------------------------------------------------
   'deepseek-v4-pro': {
-    inputPerMillion: 0.435,
-    outputPerMillion: 0.87,
+    inputPerMillion: 1.74,
+    outputPerMillion: 3.48,
     cacheCreationPerMillion: 0.0,
-    cacheReadPerMillion: 0.003625,
+    cacheReadPerMillion: 0.0145,
   },
   'deepseek-v4-flash': {
     inputPerMillion: 0.14,
@@ -750,10 +776,10 @@ const PRICING_REGISTRY: Record<string, ModelPricing> = {
   // May 27, 2026 permanent price reduction.
   // ---------------------------------------------------------------------------
   'mimo-v2.5-pro': {
-    inputPerMillion: 0.435,
-    outputPerMillion: 0.87,
+    inputPerMillion: 1.74,
+    outputPerMillion: 3.48,
     cacheCreationPerMillion: 0.0,
-    cacheReadPerMillion: 0.0036,
+    cacheReadPerMillion: 0.0145,
   },
   'mimo-v2.5': {
     inputPerMillion: 0.14,

@@ -148,6 +148,72 @@ describe('model-pricing', () => {
       expect(opus46.inputPerMillion).toBe(5.0);
       expect(opus46.outputPerMillion).toBe(25.0);
     });
+
+    it('should return 2026-06 pricing for Kimi K2.6', () => {
+      const pricing = getModelPricing('kimi-k2.6');
+      expect(pricing.inputPerMillion).toBe(0.95);
+      expect(pricing.outputPerMillion).toBe(4.0);
+      expect(pricing.cacheCreationPerMillion).toBe(0.0);
+      expect(pricing.cacheReadPerMillion).toBe(0.16);
+    });
+
+    it('should return updated MiniMax-M2.7 cache write pricing', () => {
+      const pricing = getModelPricing('MiniMax-M2.7');
+      expect(pricing.inputPerMillion).toBe(0.3);
+      expect(pricing.outputPerMillion).toBe(1.2);
+      expect(pricing.cacheCreationPerMillion).toBe(0.375);
+      expect(pricing.cacheReadPerMillion).toBe(0.06);
+    });
+
+    it('should return updated MiniMax-M3 cache write pricing', () => {
+      const pricing = getModelPricing('MiniMax-M3');
+      expect(pricing.cacheCreationPerMillion).toBe(0.75);
+      expect(pricing.cacheReadPerMillion).toBe(0.12);
+    });
+
+    it('should return updated MiniMax-M2.5 cache read pricing', () => {
+      const pricing = getModelPricing('MiniMax-M2.5');
+      expect(pricing.cacheCreationPerMillion).toBe(0.375);
+      expect(pricing.cacheReadPerMillion).toBe(0.06);
+    });
+
+    it('should return 2026-06 pricing for Qwen 3.7 Max', () => {
+      const pricing = getModelPricing('qwen3.7-max');
+      expect(pricing.inputPerMillion).toBe(2.5);
+      expect(pricing.outputPerMillion).toBe(7.5);
+      expect(pricing.cacheCreationPerMillion).toBe(3.125);
+      expect(pricing.cacheReadPerMillion).toBe(0.5);
+    });
+
+    it('should return 2026-06 pricing for Qwen 3.7 Plus (≤256K tier)', () => {
+      const pricing = getModelPricing('qwen3.7-plus');
+      expect(pricing.inputPerMillion).toBe(0.4);
+      expect(pricing.outputPerMillion).toBe(1.6);
+      expect(pricing.cacheCreationPerMillion).toBe(0.5);
+      expect(pricing.cacheReadPerMillion).toBe(0.04);
+    });
+
+    it('should return 2026-06 pricing for Qwen 3.6 Plus (≤256K tier)', () => {
+      const pricing = getModelPricing('qwen3.6-plus');
+      expect(pricing.inputPerMillion).toBe(0.5);
+      expect(pricing.outputPerMillion).toBe(3.0);
+      expect(pricing.cacheCreationPerMillion).toBe(0.625);
+      expect(pricing.cacheReadPerMillion).toBe(0.05);
+    });
+
+    it('should return 2026-06 pricing for deepseek-v4-pro', () => {
+      const pricing = getModelPricing('deepseek-v4-pro');
+      expect(pricing.inputPerMillion).toBe(1.74);
+      expect(pricing.outputPerMillion).toBe(3.48);
+      expect(pricing.cacheReadPerMillion).toBe(0.0145);
+    });
+
+    it('should return 2026-06 pricing for mimo-v2.5-pro', () => {
+      const pricing = getModelPricing('mimo-v2.5-pro');
+      expect(pricing.inputPerMillion).toBe(1.74);
+      expect(pricing.outputPerMillion).toBe(3.48);
+      expect(pricing.cacheReadPerMillion).toBe(0.0145);
+    });
   });
 
   describe('calculateCost', () => {
@@ -217,6 +283,43 @@ describe('model-pricing', () => {
       };
       const cost = calculateCost(usage, 'claude-opus-4-6');
       expect(cost).toBe(36.75); // 5 + 25 + 6.25 + 0.5
+    });
+
+    it('should calculate Qwen 3.7 Plus cost across all four token types', () => {
+      const usage: TokenUsage = {
+        inputTokens: 1_000_000,
+        outputTokens: 500_000,
+        cacheCreationTokens: 200_000,
+        cacheReadTokens: 300_000,
+      };
+      const cost = calculateCost(usage, 'qwen3.7-plus');
+      // 1.0 * 0.4 + 0.5 * 1.6 + 0.2 * 0.5 + 0.3 * 0.04
+      // = 0.4 + 0.8 + 0.1 + 0.012
+      expect(cost).toBeCloseTo(1.312, 4);
+    });
+
+    it('should calculate MiniMax-M3 cost with non-zero cache write rate', () => {
+      const usage: TokenUsage = {
+        inputTokens: 1_000_000,
+        outputTokens: 0,
+        cacheCreationTokens: 1_000_000,
+        cacheReadTokens: 0,
+      };
+      const cost = calculateCost(usage, 'MiniMax-M3');
+      // 1.0 * 0.6 + 0 + 1.0 * 0.75 + 0
+      expect(cost).toBeCloseTo(1.35, 4);
+    });
+
+    it('should calculate kimi-k2.6 cost with new rates', () => {
+      const usage: TokenUsage = {
+        inputTokens: 1_000_000,
+        outputTokens: 1_000_000,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 1_000_000,
+      };
+      const cost = calculateCost(usage, 'kimi-k2.6');
+      // 1.0 * 0.95 + 1.0 * 4.0 + 0 + 1.0 * 0.16
+      expect(cost).toBeCloseTo(5.11, 4);
     });
   });
 
