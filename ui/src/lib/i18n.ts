@@ -1061,6 +1061,7 @@ const resources = {
       analyticsCostModel: {
         title: 'Cost by Model',
         clickForDetails: 'Click for details',
+        pricingNotConfigured: 'Pricing not configured',
       },
       analyticsModel: {
         emptyState: 'No model data available',
@@ -2448,6 +2449,7 @@ const resources = {
       analyticsCostModel: {
         title: '逐模型成本',
         clickForDetails: '点击查看详情',
+        pricingNotConfigured: '未配置价格',
       },
       analyticsModel: {
         emptyState: '暂无模型数据',
@@ -3899,6 +3901,7 @@ const resources = {
       analyticsCostModel: {
         title: 'Chi phí theo mô hình',
         clickForDetails: 'Nhấp để xem chi tiết',
+        pricingNotConfigured: 'Chưa cấu hình giá',
       },
       analyticsModel: {
         emptyState: 'Chưa có dữ liệu mô hình',
@@ -5368,6 +5371,7 @@ const resources = {
       analyticsCostModel: {
         title: '逐模型成本',
         clickForDetails: '点击查看详情',
+        pricingNotConfigured: '未配置价格',
       },
       analyticsModel: {
         emptyState: '暂无模型数据',

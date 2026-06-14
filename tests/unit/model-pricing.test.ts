@@ -7,6 +7,8 @@ import {
   calculateCost,
   getKnownModels,
   hasCustomPricing,
+  isUnknownModel,
+  PRICING_TABLE_VERSION,
   type TokenUsage,
 } from '../../src/web-server/model-pricing';
 
@@ -29,10 +31,12 @@ describe('model-pricing', () => {
       }
     });
 
-    it('should return fallback pricing for unknown models', () => {
+    it('should return zero pricing for unknown models (no fallback substitution)', () => {
       const pricing = getModelPricing('unknown-model-xyz');
-      expect(pricing.inputPerMillion).toBe(3.0);
-      expect(pricing.outputPerMillion).toBe(15.0);
+      expect(pricing.inputPerMillion).toBe(0);
+      expect(pricing.outputPerMillion).toBe(0);
+      expect(pricing.cacheCreationPerMillion).toBe(0);
+      expect(pricing.cacheReadPerMillion).toBe(0);
     });
 
     it('should handle provider-prefixed model names', () => {
@@ -58,13 +62,16 @@ describe('model-pricing', () => {
       expect(pricing.inputPerMillion).toBe(0.6);
     });
 
-    it('should not use fallback pricing for known Qwen catalog IDs', () => {
-      const fallback = getModelPricing('unknown-model-xyz');
+    it('should not treat known Qwen catalog IDs as unknown', () => {
       const catalogIds = ['qwen3-235b', 'qwen3-vl-plus', 'qwen3-32b'];
 
       for (const model of catalogIds) {
         const pricing = getModelPricing(model);
-        expect(pricing).not.toEqual(fallback);
+        // Qwen aliases resolve to a real catalog price, not the zero fallback.
+        expect(isUnknownModel(model)).toBe(false);
+        // Sanity: the resolved price is not the zero fallback.
+        const isZero = Object.values(pricing).every((v) => v === 0);
+        expect(isZero).toBe(false);
       }
     });
 
@@ -73,7 +80,10 @@ describe('model-pricing', () => {
       const canonical = getModelPricing('qwen3-coder-plus');
 
       expect(pricing).toEqual(canonical);
-      expect(pricing).not.toEqual(getModelPricing('unknown-model-xyz'));
+      // Sanity: qwen3-coder alias resolves to a non-zero (real) price,
+      // not the zero-priced unknown-model fallback.
+      const isZero = Object.values(pricing).every((v) => v === 0);
+      expect(isZero).toBe(false);
     });
 
     it('should map Gemini 3 and 3.1 Flash preview variants to flash pricing', () => {
@@ -357,6 +367,36 @@ describe('model-pricing', () => {
 
     it('should return false for unknown models', () => {
       expect(hasCustomPricing('unknown-model-xyz')).toBe(false);
+    });
+  });
+
+  describe('isUnknownModel', () => {
+    it('returns true for an identifier that has no registry match', () => {
+      expect(isUnknownModel('unknown-model-xyz')).toBe(true);
+      expect(isUnknownModel('some-future-model-2099')).toBe(true);
+    });
+
+    it('returns true even when stripped/normalized variants have no match', () => {
+      expect(isUnknownModel('anthropic/some-future-model-2099')).toBe(true);
+    });
+
+    it('returns false for canonical, fully-known identifiers', () => {
+      expect(isUnknownModel('claude-sonnet-4-5')).toBe(false);
+      expect(isUnknownModel('claude-opus-4-6-20260101')).toBe(false);
+    });
+
+    it('returns false for known aliases that resolve via suffix/family match', () => {
+      // Qwen catalog IDs hit known catalog pricing through aliases or family prefix.
+      expect(isUnknownModel('qwen3-235b')).toBe(false);
+      expect(isUnknownModel('qwen3-vl-plus')).toBe(false);
+    });
+  });
+
+  describe('PRICING_TABLE_VERSION', () => {
+    it('is exported as a positive integer', () => {
+      expect(typeof PRICING_TABLE_VERSION).toBe('number');
+      expect(Number.isInteger(PRICING_TABLE_VERSION)).toBe(true);
+      expect(PRICING_TABLE_VERSION).toBeGreaterThanOrEqual(1);
     });
   });
 });

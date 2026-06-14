@@ -835,13 +835,27 @@ const MODEL_PRICING_ALIASES: Record<string, string> = {
   'gemini-3-1-flash-preview-customtools': 'gemini-2.5-flash',
 };
 
-// Default pricing for unknown models
+// Default pricing for unknown models.
+// We charge $0 for models that have no registered price rather than substituting
+// a fallback (e.g. Sonnet 4.5) rate. Substituted costs are misleading because they
+// appear to be real spend when the provider's actual rate is unknown. Users who
+// want a cost estimate for an unknown model should add it to PRICING_REGISTRY;
+// after a price-table version bump, history will be recomputed automatically.
 const UNKNOWN_MODEL_PRICING: ModelPricing = {
-  inputPerMillion: 3.0,
-  outputPerMillion: 15.0,
-  cacheCreationPerMillion: 3.75,
-  cacheReadPerMillion: 0.3,
+  inputPerMillion: 0,
+  outputPerMillion: 0,
+  cacheCreationPerMillion: 0,
+  cacheReadPerMillion: 0,
 };
+
+/**
+ * Monotonic version for the pricing table. Bump this whenever the contents of
+ * PRICING_REGISTRY, MODEL_PRICING_ALIASES, or UNKNOWN_MODEL_PRICING change in a
+ * way that affects computed costs. Downstream code (usage aggregator) compares
+ * the value it last computed with against this constant to decide whether to
+ * invalidate cached cost figures and recompute.
+ */
+export const PRICING_TABLE_VERSION = 1;
 
 // ============================================================================
 // PRICING FUNCTIONS
@@ -987,4 +1001,14 @@ export function getKnownModels(): string[] {
  */
 export function hasCustomPricing(model: string): boolean {
   return getDirectOrAliasPricing(model) !== undefined;
+}
+
+/**
+ * Returns true when the model has no entry in PRICING_REGISTRY, no alias, and
+ * does not match any suffix or family partial in the registry. The cost for
+ * such models is the zero-priced UNKNOWN_MODEL_PRICING, and UI surfaces a
+ * "Pricing not configured" indicator to prompt the user to add a rate.
+ */
+export function isUnknownModel(model: string): boolean {
+  return getModelPricing(model) === UNKNOWN_MODEL_PRICING;
 }

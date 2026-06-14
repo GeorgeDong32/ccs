@@ -13,6 +13,7 @@ import * as path from 'path';
 import type { DailyUsage, HourlyUsage, MonthlyUsage, SessionUsage } from './types';
 import { ok, info, warn } from '../../utils/ui';
 import { getCcsDir } from '../../utils/config-manager';
+import { PRICING_TABLE_VERSION } from '../model-pricing';
 
 // Cache configuration
 function getCacheDir() {
@@ -32,6 +33,13 @@ export interface UsageDiskCache {
   hourly: HourlyUsage[];
   monthly: MonthlyUsage[];
   session: SessionUsage[];
+  /**
+   * PRICING_TABLE_VERSION that was active when this cache was written.
+   * Optional for backward compatibility with caches written before this
+   * field existed. When missing, downstream code should treat the cache as
+   * "stale on pricing" and recompute costs.
+   */
+  pricingTableVersion?: number;
 }
 
 // Current cache version - increment to invalidate old caches
@@ -40,6 +48,17 @@ export interface UsageDiskCache {
 // v3: Added hourly data to cache
 // v4: Pricing fix for Claude 4.6 models (invalidate stale costs)
 const CACHE_VERSION = 4;
+
+/**
+ * Returns true when the cache's pricing table version is older than (or
+ * missing from) the current pricing table. Such caches embed cost figures
+ * computed under stale rates; callers should treat their `cost`/`totalCost`
+ * fields as untrusted and recompute from the current registry.
+ */
+export function isCachePricingStale(cache: Pick<UsageDiskCache, 'pricingTableVersion'>): boolean {
+  const cached = cache.pricingTableVersion;
+  return cached === undefined || cached < PRICING_TABLE_VERSION;
+}
 
 /**
  * Ensure ~/.ccs/cache directory exists
@@ -118,6 +137,7 @@ export function writeDiskCache(
       hourly,
       monthly,
       session,
+      pricingTableVersion: PRICING_TABLE_VERSION,
     };
 
     // Write atomically using temp file + rename

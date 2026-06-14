@@ -7,7 +7,7 @@
 
 import type { Request, Response } from 'express';
 import type { DailyUsage, Anomaly, AnomalySummary, TokenBreakdown } from './types';
-import { getModelPricing } from '../model-pricing';
+import { getModelPricing, isUnknownModel } from '../model-pricing';
 import {
   getCachedDailyData,
   getCachedMonthlyData,
@@ -526,6 +526,10 @@ export async function handleModels(
           cacheReadTokens: m.cacheReadTokens,
           cacheTokens: m.cacheCreationTokens + m.cacheReadTokens,
           cost: Math.round(m.cost * 100) / 100,
+          // True when this model has no entry in PRICING_REGISTRY. UI uses
+          // this to surface a "Pricing not configured" indicator; the cost
+          // figure is $0 until a price is added to the registry.
+          pricingConfigured: !isUnknownModel(m.model),
           percentage:
             totalTokens > 0
               ? Math.round(((m.inputTokens + m.outputTokens) / totalTokens) * 1000) / 10

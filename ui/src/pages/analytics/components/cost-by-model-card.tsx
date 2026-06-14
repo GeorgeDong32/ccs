@@ -5,6 +5,7 @@
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DollarSign, ChevronRight } from 'lucide-react';
@@ -50,7 +51,7 @@ export function CostByModelCard({
                   title={t('analyticsCostModel.clickForDetails')}
                 >
                   {/* Model name */}
-                  <div className="flex items-center gap-1.5 min-w-0 w-[130px] shrink-0">
+                  <div className="flex items-center gap-1.5 min-w-0 w-[200px] shrink-0">
                     <div
                       className="w-2 h-2 rounded-full shrink-0"
                       style={{ backgroundColor: getModelColor(model.model) }}
@@ -58,6 +59,15 @@ export function CostByModelCard({
                     <span className="font-medium truncate group-hover:underline underline-offset-2">
                       {model.model}
                     </span>
+                    {model.pricingConfigured === false && (
+                      <Badge
+                        variant="outline"
+                        className="ml-1 h-4 px-1.5 text-[9px] font-normal border-amber-500/50 text-amber-600 dark:text-amber-400 shrink-0"
+                        title={t('analyticsCostModel.pricingNotConfigured')}
+                      >
+                        {t('analyticsCostModel.pricingNotConfigured')}
+                      </Badge>
+                    )}
                   </div>
                   {/* Cost breakdown mini-bar */}
                   <CostBreakdownBar model={model} />

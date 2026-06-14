@@ -66,6 +66,14 @@ export interface ModelUsage {
   percentage: number;
   costBreakdown: TokenBreakdown;
   ioRatio: number;
+  /**
+   * True when the model has an entry in the server's pricing registry.
+   * False means cost is reported as $0 because the server could not find a
+   * rate - the UI should show a "Pricing not configured" indicator and the
+   * user should add the model to PRICING_REGISTRY to get real numbers.
+   * Optional for backward compatibility with older servers.
+   */
+  pricingConfigured?: boolean;
 }
 
 export type AnomalyType = 'high_input' | 'high_io_ratio' | 'cost_spike' | 'high_cache_read';

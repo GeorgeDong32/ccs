@@ -26,7 +26,8 @@ import {
   syncCliproxyUsage,
 } from './cliproxy-usage-syncer';
 import { loadCursorData } from './cursor-data-store';
-import { calculateCost } from '../model-pricing';
+import { calculateCost, PRICING_TABLE_VERSION } from '../model-pricing';
+import { isCachePricingStale } from './disk-cache';
 import type { CursorUsageEvent } from './cursor-csv-parser';
 import type { ModelBreakdown } from './types';
 
@@ -541,6 +542,19 @@ function ensureDiskCacheLoaded(): void {
   const diskCache = readDiskCache();
   if (!diskCache) return;
 
+  // If the disk cache was written under a different (older) pricing table, the
+  // embedded `cost` and `totalCost` fields are stale. Don't load them into
+  // memory - leave the in-memory cache empty so the next request triggers a
+  // full refresh and recomputes costs from the current PRICING_REGISTRY.
+  if (isCachePricingStale(diskCache)) {
+    console.log(
+      info(
+        `Disk cache pricing version ${diskCache.pricingTableVersion ?? 'unknown'} < ${PRICING_TABLE_VERSION}; will recompute costs`
+      )
+    );
+    return;
+  }
+
   // Load disk cache into memory (regardless of freshness)
   cache.set('daily', { data: diskCache.daily, timestamp: diskCache.timestamp });
   cache.set('hourly', { data: diskCache.hourly || [], timestamp: diskCache.timestamp });
@@ -670,6 +684,30 @@ export async function prewarmUsageCache(): Promise<{
     startCliproxySync();
 
     const diskCache = readDiskCache();
+
+    // If the disk cache was written under a different (older) pricing table, the
+    // embedded cost fields are stale. Don't trust them - fall through to the
+    // "no usable disk cache" path so refreshFromSourceCoalesced rebuilds
+    // aggregated rows from the current PRICING_REGISTRY.
+    if (diskCache && isCachePricingStale(diskCache)) {
+      console.log(
+        info(
+          `Disk cache pricing version ${diskCache.pricingTableVersion ?? 'unknown'} < ${PRICING_TABLE_VERSION}; prewarm will skip cost cache`
+        )
+      );
+      // Background refresh fills the cache; we still return quickly without
+      // the in-memory cache being pre-populated.
+      if (!isRefreshing) {
+        isRefreshing = true;
+        refreshFromSourceCoalesced()
+          .then(() => console.log(ok('Background refresh complete')))
+          .catch((err) => console.error(fail(`Background refresh failed: ${err}`)))
+          .finally(() => {
+            isRefreshing = false;
+          });
+      }
+      return { timestamp: Date.now(), elapsed: Date.now() - start, source: 'disk-stale-pricing' };
+    }
 
     // Fresh disk cache - use it directly
     if (diskCache && isDiskCacheFresh(diskCache)) {
