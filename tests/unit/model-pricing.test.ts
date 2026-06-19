@@ -175,10 +175,12 @@ describe('model-pricing', () => {
       expect(pricing.cacheReadPerMillion).toBe(0.06);
     });
 
-    it('should return updated MiniMax-M3 cache write pricing', () => {
+    it('should return updated MiniMax-M3 pricing (corrected rates)', () => {
       const pricing = getModelPricing('MiniMax-M3');
-      expect(pricing.cacheCreationPerMillion).toBe(0.75);
-      expect(pricing.cacheReadPerMillion).toBe(0.12);
+      expect(pricing.inputPerMillion).toBe(0.3);
+      expect(pricing.outputPerMillion).toBe(1.2);
+      expect(pricing.cacheCreationPerMillion).toBe(0.0);
+      expect(pricing.cacheReadPerMillion).toBe(0.06);
     });
 
     it('should return updated MiniMax-M2.5 cache read pricing', () => {
@@ -223,6 +225,38 @@ describe('model-pricing', () => {
       expect(pricing.inputPerMillion).toBe(1.74);
       expect(pricing.outputPerMillion).toBe(3.48);
       expect(pricing.cacheReadPerMillion).toBe(0.0145);
+    });
+
+    it('should return correct pricing for GLM 5.2', () => {
+      const pricing = getModelPricing('glm-5.2');
+      expect(pricing.inputPerMillion).toBe(1.4);
+      expect(pricing.outputPerMillion).toBe(4.4);
+      expect(pricing.cacheCreationPerMillion).toBe(0.0);
+      expect(pricing.cacheReadPerMillion).toBe(0.26);
+    });
+
+    it('should return correct pricing for Kimi K2.7 Code', () => {
+      const pricing = getModelPricing('kimi-k2.7-code');
+      expect(pricing.inputPerMillion).toBe(0.95);
+      expect(pricing.outputPerMillion).toBe(4.0);
+      expect(pricing.cacheCreationPerMillion).toBe(0.0);
+      expect(pricing.cacheReadPerMillion).toBe(0.19);
+    });
+
+    it('should return correct high-tier pricing for Qwen 3.7 Plus (>256K)', () => {
+      const pricing = getModelPricing('qwen3.7-plus-high');
+      expect(pricing.inputPerMillion).toBe(1.2);
+      expect(pricing.outputPerMillion).toBe(4.8);
+      expect(pricing.cacheCreationPerMillion).toBe(1.5);
+      expect(pricing.cacheReadPerMillion).toBe(0.12);
+    });
+
+    it('should return correct high-tier pricing for Qwen 3.6 Plus (>256K)', () => {
+      const pricing = getModelPricing('qwen3.6-plus-high');
+      expect(pricing.inputPerMillion).toBe(2.0);
+      expect(pricing.outputPerMillion).toBe(6.0);
+      expect(pricing.cacheCreationPerMillion).toBe(2.5);
+      expect(pricing.cacheReadPerMillion).toBe(0.2);
     });
   });
 
@@ -308,7 +342,7 @@ describe('model-pricing', () => {
       expect(cost).toBeCloseTo(1.312, 4);
     });
 
-    it('should calculate MiniMax-M3 cost with non-zero cache write rate', () => {
+    it('should calculate MiniMax-M3 cost with corrected rates', () => {
       const usage: TokenUsage = {
         inputTokens: 1_000_000,
         outputTokens: 0,
@@ -316,8 +350,8 @@ describe('model-pricing', () => {
         cacheReadTokens: 0,
       };
       const cost = calculateCost(usage, 'MiniMax-M3');
-      // 1.0 * 0.6 + 0 + 1.0 * 0.75 + 0
-      expect(cost).toBeCloseTo(1.35, 4);
+      // 1.0 * 0.3 + 0 + 1.0 * 0 + 0
+      expect(cost).toBeCloseTo(0.3, 4);
     });
 
     it('should calculate kimi-k2.6 cost with new rates', () => {
@@ -330,6 +364,44 @@ describe('model-pricing', () => {
       const cost = calculateCost(usage, 'kimi-k2.6');
       // 1.0 * 0.95 + 1.0 * 4.0 + 0 + 1.0 * 0.16
       expect(cost).toBeCloseTo(5.11, 4);
+    });
+
+    it('should calculate kimi-k2.7-code cost with new rates', () => {
+      const usage: TokenUsage = {
+        inputTokens: 1_000_000,
+        outputTokens: 1_000_000,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 1_000_000,
+      };
+      const cost = calculateCost(usage, 'kimi-k2.7-code');
+      // 1.0 * 0.95 + 1.0 * 4.0 + 0 + 1.0 * 0.19
+      expect(cost).toBeCloseTo(5.14, 4);
+    });
+
+    it('should calculate Qwen 3.7 Plus high-tier cost correctly', () => {
+      const usage: TokenUsage = {
+        inputTokens: 1_000_000,
+        outputTokens: 500_000,
+        cacheCreationTokens: 200_000,
+        cacheReadTokens: 300_000,
+      };
+      const cost = calculateCost(usage, 'qwen3.7-plus-high');
+      // 1.0 * 1.2 + 0.5 * 4.8 + 0.2 * 1.5 + 0.3 * 0.12
+      // = 1.2 + 2.4 + 0.3 + 0.036
+      expect(cost).toBeCloseTo(3.936, 4);
+    });
+
+    it('should calculate Qwen 3.6 Plus high-tier cost correctly', () => {
+      const usage: TokenUsage = {
+        inputTokens: 1_000_000,
+        outputTokens: 500_000,
+        cacheCreationTokens: 200_000,
+        cacheReadTokens: 300_000,
+      };
+      const cost = calculateCost(usage, 'qwen3.6-plus-high');
+      // 1.0 * 2.0 + 0.5 * 6.0 + 0.2 * 2.5 + 0.3 * 0.2
+      // = 2.0 + 3.0 + 0.5 + 0.06
+      expect(cost).toBeCloseTo(5.56, 4);
     });
   });
 

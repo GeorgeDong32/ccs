@@ -457,6 +457,12 @@ const PRICING_REGISTRY: Record<string, ModelPricing> = {
     cacheCreationPerMillion: 0.0,
     cacheReadPerMillion: 0.26,
   },
+  'glm-5.2': {
+    inputPerMillion: 1.4,
+    outputPerMillion: 4.4,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.26,
+  },
   'glm-5-turbo': {
     inputPerMillion: 1.2,
     outputPerMillion: 4.0,
@@ -533,6 +539,13 @@ const PRICING_REGISTRY: Record<string, ModelPricing> = {
     outputPerMillion: 4.0,
     cacheCreationPerMillion: 0.0,
     cacheReadPerMillion: 0.16,
+  },
+  // Kimi K2.7 Code ($0.95/$4.00)
+  'kimi-k2.7-code': {
+    inputPerMillion: 0.95,
+    outputPerMillion: 4.0,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.19,
   },
   'kimi-for-coding': {
     inputPerMillion: 0.6,
@@ -634,11 +647,12 @@ const PRICING_REGISTRY: Record<string, ModelPricing> = {
   // ---------------------------------------------------------------------------
   // MiniMax Models - Source: https://platform.minimax.io/docs/guides/pricing-paygo
   // ---------------------------------------------------------------------------
+  // MiniMax M3 ($0.30/$1.20) - Source: https://platform.minimax.io/docs/guides/pricing-paygo
   'MiniMax-M3': {
-    inputPerMillion: 0.6,
-    outputPerMillion: 2.4,
-    cacheCreationPerMillion: 0.75,
-    cacheReadPerMillion: 0.12,
+    inputPerMillion: 0.3,
+    outputPerMillion: 1.2,
+    cacheCreationPerMillion: 0.0,
+    cacheReadPerMillion: 0.06,
   },
   'MiniMax-M2.7': {
     inputPerMillion: 0.3,
@@ -721,25 +735,37 @@ const PRICING_REGISTRY: Record<string, ModelPricing> = {
     cacheCreationPerMillion: 0.3,
     cacheReadPerMillion: 0.06,
   },
-  // TODO: Qwen Plus models have tiered pricing at 256K context boundary;
-  // only the ≤256K tier is registered. >256K usage falls through to fallback.
   'qwen3.7-max': {
     inputPerMillion: 2.5,
     outputPerMillion: 7.5,
     cacheCreationPerMillion: 3.125,
     cacheReadPerMillion: 0.5,
   },
+  // Qwen 3.7 Plus — tiered at 256K context boundary
   'qwen3.7-plus': {
     inputPerMillion: 0.4,
     outputPerMillion: 1.6,
     cacheCreationPerMillion: 0.5,
     cacheReadPerMillion: 0.04,
   },
+  'qwen3.7-plus-high': {
+    inputPerMillion: 1.2,
+    outputPerMillion: 4.8,
+    cacheCreationPerMillion: 1.5,
+    cacheReadPerMillion: 0.12,
+  },
+  // Qwen 3.6 Plus — tiered at 256K context boundary
   'qwen3.6-plus': {
     inputPerMillion: 0.5,
     outputPerMillion: 3.0,
     cacheCreationPerMillion: 0.625,
     cacheReadPerMillion: 0.05,
+  },
+  'qwen3.6-plus-high': {
+    inputPerMillion: 2.0,
+    outputPerMillion: 6.0,
+    cacheCreationPerMillion: 2.5,
+    cacheReadPerMillion: 0.2,
   },
 
   // ---------------------------------------------------------------------------
@@ -855,7 +881,7 @@ const UNKNOWN_MODEL_PRICING: ModelPricing = {
  * the value it last computed with against this constant to decide whether to
  * invalidate cached cost figures and recompute.
  */
-export const PRICING_TABLE_VERSION = 1;
+export const PRICING_TABLE_VERSION = 2;
 
 // ============================================================================
 // PRICING FUNCTIONS
